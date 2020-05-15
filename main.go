@@ -73,12 +73,13 @@ func main() {
 		} else {
 			packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
 
-			// NOTE: just pushing all TCP through it on the basis it might be
-			// http.
 			for packet := range packetSource.Packets() {
-				// check for TCP
+				// NOTE: just pushing all TCP through it on the basis it might
+				// be http.
 				if tcp, ok := packet.TransportLayer().(*layers.TCP); ok {
-					assembler.AssembleWithTimestamp(packet.NetworkLayer().NetworkFlow(), tcp, packet.Metadata().Timestamp)
+					assembler.AssembleWithTimestamp(
+						packet.NetworkLayer().NetworkFlow(),
+						tcp, packet.Metadata().Timestamp)
 				}
 			}
 		}
