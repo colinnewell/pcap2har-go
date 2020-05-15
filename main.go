@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"log"
@@ -19,20 +20,37 @@ type httpStreamFactory struct{}
 
 func (f *httpStreamFactory) New(a, b gopacket.Flow) tcpassembly.Stream {
 	r := tcpreader.NewReaderStream()
-	go printRequests(&r)
+	go printRequests(&r, a, b)
 	return &r
 }
 
-func printRequests(r io.Reader) {
-	// Convert to bufio, since that's what ReadRequest wants.
-	buf := bufio.NewReader(r)
+func printRequests(r io.Reader, a, b gopacket.Flow) {
+	var alt bytes.Buffer
+	tee := io.TeeReader(r, &alt)
+	buf := bufio.NewReader(tee)
+
 	for {
 		if req, err := http.ReadRequest(buf); err == io.EOF {
 			return
 		} else if err != nil {
-			//log.Println("Error parsing HTTP requests:", err)
+			m := io.MultiReader(&alt, buf)
+			buf := bufio.NewReader(m)
+			if res, err := http.ReadResponse(buf, nil); err == io.EOF {
+				return
+			} else if err != nil {
+				// meh, guess it's not for us.
+			} else {
+				fmt.Println(a, b)
+				fmt.Println("HTTP RESPONSE:", res)
+				fmt.Println("Body contains", tcpreader.DiscardBytesToEOF(res.Body), "bytes")
+				// FIXME: grab body
+				// dump whole lots as json
+			}
 		} else {
+			fmt.Println(a, b)
 			fmt.Println("HTTP REQUEST:", req)
+			// FIXME: grab body
+			// dump whole lots as json
 			fmt.Println("Body contains", tcpreader.DiscardBytesToEOF(req.Body), "bytes")
 		}
 	}
