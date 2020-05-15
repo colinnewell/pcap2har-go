@@ -73,6 +73,8 @@ func main() {
 		} else {
 			packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
 
+			// NOTE: just pushing all TCP through it on the basis it might be
+			// http.
 			for packet := range packetSource.Packets() {
 				// check for TCP
 				if tcp, ok := packet.TransportLayer().(*layers.TCP); ok {
