@@ -1,6 +1,6 @@
-all: stats-summary
+all: pcap2har
 
-stats-summary: main.go go.mod go.sum
+pcap2har: main.go go.mod go.sum
 	go build -o pcap2har main.go
 
 test:
