@@ -11,3 +11,7 @@ clean:
 
 install:
 	cp pcap2har /usr/local/bin
+
+lint:
+	golangci-lint run
+	golint ./...

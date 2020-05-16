@@ -106,11 +106,11 @@ type conversationAddress struct {
 	ip, port gopacket.Flow
 }
 type conversation struct {
-	address       conversationAddress
-	request       *http.Request
-	request_body  []byte
-	response      *http.Response
-	response_body []byte
+	address      conversationAddress
+	request      *http.Request
+	requestBody  []byte
+	response     *http.Response
+	responseBody []byte
 }
 
 var conversations map[conversationAddress]conversation
@@ -144,7 +144,7 @@ func printRequests(r io.Reader, a, b gopacket.Flow) {
 				address := conversationAddress{ip: a.Reverse(), port: b.Reverse()}
 				c := conversations[address]
 				c.response = res
-				c.response_body = body
+				c.responseBody = body
 				conversations[address] = c
 			}
 		} else {
@@ -154,9 +154,9 @@ func printRequests(r io.Reader, a, b gopacket.Flow) {
 				return
 			}
 			conversations[address] = conversation{
-				address:      address,
-				request:      req,
-				request_body: body,
+				address:     address,
+				request:     req,
+				requestBody: body,
 			}
 		}
 	}
@@ -232,9 +232,9 @@ func main() {
 			URL:         v.request.URL.String(),
 			QueryString: queryString,
 			Content: ContentInfo{
-				Size:     len(v.request_body),
+				Size:     len(v.requestBody),
 				MimeType: mimeType,
-				Text:     string(v.request_body),
+				Text:     string(v.requestBody),
 			},
 		}
 		mimeTypes, ok = v.response.Header["Content-Type"]
@@ -249,9 +249,9 @@ func main() {
 		}
 		resp := ResponseInfo{
 			Content: ContentInfo{
-				Size:     len(v.response_body),
+				Size:     len(v.responseBody),
 				MimeType: mimeType,
-				Text:     string(v.response_body),
+				Text:     string(v.responseBody),
 			},
 			Headers:     headers,
 			HTTPVersion: v.response.Proto,
