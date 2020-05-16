@@ -1,5 +1,7 @@
 # pcap2har-go
 
+## Overview
+
 This is a quick stab at a replacement for pcap2har written in Go.
 
 This is not complete, and is largely been driven by occasions where I
@@ -45,3 +47,21 @@ json.
 In short, there's plenty more to do before this is complete, the code
 is more a proof of concept at this point.  It is amazing how far you
 can get so quickly with the existing Go libraries.
+
+## Building
+
+This requires the libpcap development library (and Go).
+
+	sudo apt install libpcap-dev
+	make
+	sudo make install
+
+## Using
+
+	sudo tcpdump port 80 -w packets.dump
+	pcap2har packets.dump
+
+HAR files contain a lot of info you probably don't need.  I like to use tools
+like jq to boil down the json into more concise info.
+
+	pcap2har packets.dump | jq '.log.entries[] | { url: .request.url, response: (if .response.content.mimeType == "application/json" then .response.content.text | gsub("\n"; "") | @base64d | fromjson else "" end), response_status: .response.status, query_string: .request.queryString }'
