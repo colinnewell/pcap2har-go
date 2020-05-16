@@ -34,35 +34,37 @@ type Page struct {
 	} `json:"pageTimings"`
 }
 
-type Header struct {
-	Name  string `json:"name"`
-	Value string `json:"value"`
-}
+type Header KeyValues
 
 type Cookie struct {
-	Name     string      `json:"name"`
-	Value    string      `json:"value"`
-	Expires  interface{} `json:"expires"`
-	HTTPOnly bool        `json:"httpOnly"`
-	Secure   bool        `json:"secure"`
+	Name     string    `json:"name"`
+	Value    string    `json:"value"`
+	Expires  time.Time `json:"expires"`
+	HTTPOnly bool      `json:"httpOnly"`
+	Secure   bool      `json:"secure"`
 }
 
 type RequestInfo struct {
-	Method      string        `json:"method"`
-	URL         string        `json:"url"`
-	HTTPVersion string        `json:"httpVersion"`
-	Headers     []Header      `json:"headers"`
-	QueryString []interface{} `json:"queryString"`
-	Cookies     []Cookie      `json:"cookies"`
-	HeadersSize int           `json:"headersSize"`
-	BodySize    int           `json:"bodySize"`
-	Content     ContentInfo   `json:"content"`
+	Method      string      `json:"method"`
+	URL         string      `json:"url"`
+	HTTPVersion string      `json:"httpVersion"`
+	Headers     []Header    `json:"headers"`
+	QueryString []KeyValues `json:"queryString"`
+	Cookies     []Cookie    `json:"cookies"`
+	HeadersSize int         `json:"headersSize"`
+	BodySize    int         `json:"bodySize"`
+	Content     ContentInfo `json:"content"`
 }
 
 type ContentInfo struct {
 	MimeType string `json:"mimeType"`
 	Size     int    `json:"size"`
 	Text     string `json:"text"`
+}
+
+type KeyValues struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
 }
 
 type ResponseInfo struct {
@@ -195,21 +197,66 @@ func main() {
 	//fmt.Printf("Found %d connections\n", connections)
 	for _, v := range conversations {
 		// FIXME: plug into the har structure
-		req := RequestInfo{
-			Method: v.request.Method,
-			URL:    v.request.URL.String(),
+		var reqheaders []Header
+		for k, values := range v.request.Header {
+			for _, v := range values {
+				reqheaders = append(reqheaders, Header{Name: k, Value: v})
+			}
 		}
-		// FIXME: header
+		cookies := v.request.Cookies()
+		cookieInfo := make([]Cookie, len(cookies))
+		for i, c := range cookies {
+			cookieInfo[i] = Cookie{
+				Name:     c.Name,
+				Value:    c.Value,
+				Expires:  c.Expires,
+				HTTPOnly: c.HttpOnly,
+				Secure:   c.Secure,
+			}
+		}
+		var queryString []KeyValues
+		for k, values := range v.request.URL.Query() {
+			for _, v := range values {
+				queryString = append(queryString, KeyValues{Name: k, Value: v})
+			}
+		}
 		var mimeType string
+		mimeTypes, ok := v.request.Header["Content-Type"]
+		if ok {
+			mimeType = mimeTypes[0]
+		}
+		req := RequestInfo{
+			Cookies:     cookieInfo,
+			Headers:     reqheaders,
+			Method:      v.request.Method,
+			URL:         v.request.URL.String(),
+			QueryString: queryString,
+			Content: ContentInfo{
+				Size:     len(v.request_body),
+				MimeType: mimeType,
+				Text:     string(v.request_body),
+			},
+		}
+		mimeTypes, ok = v.response.Header["Content-Type"]
+		if ok {
+			mimeType = mimeTypes[0]
+		}
+		var headers []Header
+		for k, values := range v.response.Header {
+			for _, v := range values {
+				headers = append(headers, Header{Name: k, Value: v})
+			}
+		}
 		resp := ResponseInfo{
-			Status:      v.response.StatusCode,
-			StatusText:  v.response.Status,
-			HTTPVersion: v.response.Proto,
 			Content: ContentInfo{
 				Size:     len(v.response_body),
 				MimeType: mimeType,
 				Text:     string(v.response_body),
 			},
+			Headers:     headers,
+			HTTPVersion: v.response.Proto,
+			StatusText:  v.response.Status,
+			Status:      v.response.StatusCode,
 		}
 		entry := Entry{
 			Request:  req,
