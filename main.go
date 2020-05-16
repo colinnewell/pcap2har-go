@@ -264,11 +264,6 @@ func main() {
 			// FIXME: add connection info
 		}
 		har.Log.Entries = append(har.Log.Entries, entry)
-		//fmt.Println(v.address.ip, v.address.port)
-		//fmt.Println(v.request)
-		//fmt.Println(v.request_body)
-		//fmt.Println(v.response)
-		//fmt.Println(v.response_body)
 	}
 
 	bytes, err := json.Marshal(har)
