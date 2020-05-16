@@ -3,11 +3,14 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
@@ -16,7 +19,99 @@ import (
 	"github.com/google/gopacket/tcpassembly/tcpreader"
 )
 
+type Creator struct {
+	Name    string `json:"name"`
+	Version string `json:"version"`
+}
+
+type Page struct {
+	StartedDateTime time.Time `json:"startedDateTime"`
+	ID              string    `json:"id"`
+	Title           string    `json:"title"`
+	PageTimings     struct {
+		OnContentLoad float64     `json:"onContentLoad"`
+		OnLoad        interface{} `json:"onLoad"`
+	} `json:"pageTimings"`
+}
+
+type Header struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
+type Cookie struct {
+	Name     string      `json:"name"`
+	Value    string      `json:"value"`
+	Expires  interface{} `json:"expires"`
+	HTTPOnly bool        `json:"httpOnly"`
+	Secure   bool        `json:"secure"`
+}
+
+type RequestInfo struct {
+	Method      string        `json:"method"`
+	URL         string        `json:"url"`
+	HTTPVersion string        `json:"httpVersion"`
+	Headers     []Header      `json:"headers"`
+	QueryString []interface{} `json:"queryString"`
+	Cookies     []Cookie      `json:"cookies"`
+	HeadersSize int           `json:"headersSize"`
+	BodySize    int           `json:"bodySize"`
+	Content     ContentInfo   `json:"content"`
+}
+
+type ContentInfo struct {
+	MimeType string `json:"mimeType"`
+	Size     int    `json:"size"`
+	Text     string `json:"text"`
+}
+
+type ResponseInfo struct {
+	Status       int           `json:"status"`
+	StatusText   string        `json:"statusText"`
+	HTTPVersion  string        `json:"httpVersion"`
+	Headers      []Header      `json:"headers"`
+	Cookies      []interface{} `json:"cookies"`
+	Content      ContentInfo   `json:"content"`
+	RedirectURL  string        `json:"redirectURL"`
+	HeadersSize  int           `json:"headersSize"`
+	BodySize     int           `json:"bodySize"`
+	TransferSize int           `json:"_transferSize"`
+}
+
+type Entry struct {
+	StartedDateTime time.Time    `json:"startedDateTime"`
+	Time            float64      `json:"time"`
+	Request         RequestInfo  `json:"request"`
+	Response        ResponseInfo `json:"response"`
+	ServerIPAddress string       `json:"serverIPAddress"`
+	Connection      string       `json:"connection,omitempty"`
+}
+
+type Har struct {
+	Log struct {
+		Version string  `json:"version"`
+		Creator Creator `json:"creator"`
+		Pages   []Page  `json:"pages"`
+		Entries []Entry `json:"entries"`
+	} `json:"log"`
+}
+
+var har Har
+
 type httpStreamFactory struct{}
+
+type conversationAddress struct {
+	ip, port gopacket.Flow
+}
+type conversation struct {
+	address       conversationAddress
+	request       *http.Request
+	request_body  []byte
+	response      *http.Response
+	response_body []byte
+}
+
+var conversations map[conversationAddress]conversation
 
 func (f *httpStreamFactory) New(a, b gopacket.Flow) tcpassembly.Stream {
 	r := tcpreader.NewReaderStream()
@@ -40,18 +135,27 @@ func printRequests(r io.Reader, a, b gopacket.Flow) {
 			} else if err != nil {
 				// meh, guess it's not for us.
 			} else {
-				fmt.Println(a, b)
-				fmt.Println("HTTP RESPONSE:", res)
-				fmt.Println("Body contains", tcpreader.DiscardBytesToEOF(res.Body), "bytes")
-				// FIXME: grab body
-				// dump whole lots as json
+				body, err := ioutil.ReadAll(res.Body)
+				if err != nil {
+					return
+				}
+				address := conversationAddress{ip: a.Reverse(), port: b.Reverse()}
+				c := conversations[address]
+				c.response = res
+				c.response_body = body
+				conversations[address] = c
 			}
 		} else {
-			fmt.Println(a, b)
-			fmt.Println("HTTP REQUEST:", req)
-			// FIXME: grab body
-			// dump whole lots as json
-			fmt.Println("Body contains", tcpreader.DiscardBytesToEOF(req.Body), "bytes")
+			address := conversationAddress{ip: a, port: b}
+			body, err := ioutil.ReadAll(req.Body)
+			if err != nil {
+				return
+			}
+			conversations[address] = conversation{
+				address:      address,
+				request:      req,
+				request_body: body,
+			}
 		}
 	}
 }
@@ -62,6 +166,8 @@ func main() {
 	if len(files) == 0 {
 		log.Fatal("Must specify filename")
 	}
+
+	conversations = make(map[conversationAddress]conversation)
 
 	streamFactory := &httpStreamFactory{}
 	streamPool := tcpassembly.NewStreamPool(streamFactory)
@@ -85,6 +191,42 @@ func main() {
 		}
 	}
 
-	connections := assembler.FlushAll()
-	fmt.Printf("Found %d connections\n", connections)
+	assembler.FlushAll()
+	//fmt.Printf("Found %d connections\n", connections)
+	for _, v := range conversations {
+		// FIXME: plug into the har structure
+		req := RequestInfo{
+			Method: v.request.Method,
+			URL:    v.request.URL.String(),
+		}
+		// FIXME: header
+		var mimeType string
+		resp := ResponseInfo{
+			Status:      v.response.StatusCode,
+			StatusText:  v.response.Status,
+			HTTPVersion: v.response.Proto,
+			Content: ContentInfo{
+				Size:     len(v.response_body),
+				MimeType: mimeType,
+				Text:     string(v.response_body),
+			},
+		}
+		entry := Entry{
+			Request:  req,
+			Response: resp,
+			// FIXME: add connection info
+		}
+		har.Log.Entries = append(har.Log.Entries, entry)
+		//fmt.Println(v.address.ip, v.address.port)
+		//fmt.Println(v.request)
+		//fmt.Println(v.request_body)
+		//fmt.Println(v.response)
+		//fmt.Println(v.response_body)
+	}
+
+	bytes, err := json.Marshal(har)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(string(bytes))
 }
