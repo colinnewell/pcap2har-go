@@ -113,7 +113,7 @@ type conversation struct {
 	responseBody []byte
 }
 
-var conversations map[conversationAddress]conversation
+var conversations map[conversationAddress][]conversation
 
 func (f *httpStreamFactory) New(a, b gopacket.Flow) tcpassembly.Stream {
 	r := tcpreader.NewReaderStream()
@@ -123,10 +123,10 @@ func (f *httpStreamFactory) New(a, b gopacket.Flow) tcpassembly.Stream {
 
 func printRequests(r io.Reader, a, b gopacket.Flow) {
 	var alt bytes.Buffer
-	tee := io.TeeReader(r, &alt)
-	buf := bufio.NewReader(tee)
 
 	for {
+		tee := io.TeeReader(r, &alt)
+		buf := bufio.NewReader(tee)
 		if req, err := http.ReadRequest(buf); err == io.EOF {
 			return
 		} else if err != nil {
@@ -137,28 +137,50 @@ func printRequests(r io.Reader, a, b gopacket.Flow) {
 			} else if err != nil {
 				// meh, guess it's not for us.
 			} else {
+				// FIXME: could do with bookmarking where we are with the reader
+				// so that we can just replay and suck it dry if we hit an error here.
+				// check size of alt
+				// then we can go from there.
+				// then suck down the rest from m
+				alt.Reset()
 				body, err := ioutil.ReadAll(res.Body)
 				if err != nil {
-					return
+					rawBody := io.MultiReader(&alt, buf)
+					body, err = ioutil.ReadAll(rawBody)
+					if err != nil {
+						log.Println("Got an error trying to read it raw, let's just discard")
+
+						tcpreader.DiscardBytesToEOF(buf)
+						log.Println(a, b, "++++++++++++", err)
+					}
 				}
 				address := conversationAddress{ip: a.Reverse(), port: b.Reverse()}
-				c := conversations[address]
+				c := conversations[address][len(conversations[address])-1]
 				c.response = res
 				c.responseBody = body
-				conversations[address] = c
+				conversations[address][len(conversations[address])-1] = c
 			}
 		} else {
 			address := conversationAddress{ip: a, port: b}
+			alt.Reset()
 			body, err := ioutil.ReadAll(req.Body)
 			if err != nil {
-				return
+				rawBody := io.MultiReader(&alt, buf)
+				body, err = ioutil.ReadAll(rawBody)
+				if err != nil {
+					log.Println("Got an error trying to read it raw, let's just discard")
+
+					tcpreader.DiscardBytesToEOF(buf)
+					log.Println(a, b, "++++++++++++", err)
+				}
 			}
-			conversations[address] = conversation{
+			conversations[address] = append(conversations[address], conversation{
 				address:     address,
 				request:     req,
 				requestBody: body,
-			}
+			})
 		}
+		alt.Reset()
 	}
 }
 
@@ -169,7 +191,7 @@ func main() {
 		log.Fatal("Must specify filename")
 	}
 
-	conversations = make(map[conversationAddress]conversation)
+	conversations = make(map[conversationAddress][]conversation)
 
 	streamFactory := &httpStreamFactory{}
 	streamPool := tcpassembly.NewStreamPool(streamFactory)
@@ -195,75 +217,92 @@ func main() {
 
 	assembler.FlushAll()
 	//fmt.Printf("Found %d connections\n", connections)
-	for _, v := range conversations {
-		// FIXME: plug into the har structure
-		var reqheaders []Header
-		for k, values := range v.request.Header {
-			for _, v := range values {
-				reqheaders = append(reqheaders, Header{Name: k, Value: v})
+	for _, c := range conversations {
+		for _, v := range c {
+			// FIXME: plug into the har structure
+			var reqheaders []Header
+			for k, values := range v.request.Header {
+				for _, v := range values {
+					reqheaders = append(reqheaders, Header{Name: k, Value: v})
+				}
 			}
-		}
-		cookies := v.request.Cookies()
-		cookieInfo := make([]Cookie, len(cookies))
-		for i, c := range cookies {
-			cookieInfo[i] = Cookie{
-				Name:     c.Name,
-				Value:    c.Value,
-				Expires:  c.Expires,
-				HTTPOnly: c.HttpOnly,
-				Secure:   c.Secure,
+			if v.request.Host != "" {
+				reqheaders = append(reqheaders, Header{
+					Name: "Host", Value: v.request.Host,
+				})
 			}
-		}
-		var queryString []KeyValues
-		for k, values := range v.request.URL.Query() {
-			for _, v := range values {
-				queryString = append(queryString, KeyValues{Name: k, Value: v})
+			cookies := v.request.Cookies()
+			cookieInfo := make([]Cookie, len(cookies))
+			for i, c := range cookies {
+				cookieInfo[i] = Cookie{
+					Name:     c.Name,
+					Value:    c.Value,
+					Expires:  c.Expires,
+					HTTPOnly: c.HttpOnly,
+					Secure:   c.Secure,
+				}
 			}
-		}
-		var mimeType string
-		mimeTypes, ok := v.request.Header["Content-Type"]
-		if ok {
-			mimeType = mimeTypes[0]
-		}
-		req := RequestInfo{
-			Cookies:     cookieInfo,
-			Headers:     reqheaders,
-			Method:      v.request.Method,
-			URL:         v.request.URL.String(),
-			QueryString: queryString,
-			Content: ContentInfo{
-				Size:     len(v.requestBody),
-				MimeType: mimeType,
-				Text:     string(v.requestBody),
-			},
-		}
-		mimeTypes, ok = v.response.Header["Content-Type"]
-		if ok {
-			mimeType = mimeTypes[0]
-		}
-		var headers []Header
-		for k, values := range v.response.Header {
-			for _, v := range values {
-				headers = append(headers, Header{Name: k, Value: v})
+			var queryString []KeyValues
+			for k, values := range v.request.URL.Query() {
+				for _, v := range values {
+					queryString = append(queryString, KeyValues{Name: k, Value: v})
+				}
 			}
+			var mimeType string
+			mimeTypes, ok := v.request.Header["Content-Type"]
+			if ok {
+				mimeType = mimeTypes[0]
+			}
+			// for some reason host isn't hooked up
+			v.request.URL.Host = v.request.Host
+			if v.request.TLS == nil {
+				v.request.URL.Scheme = "http"
+			} else {
+				v.request.URL.Scheme = "https"
+			}
+			req := RequestInfo{
+				Cookies:     cookieInfo,
+				Headers:     reqheaders,
+				Method:      v.request.Method,
+				URL:         v.request.URL.String(),
+				QueryString: queryString,
+				Content: ContentInfo{
+					Size:     len(v.requestBody),
+					MimeType: mimeType,
+					Text:     string(v.requestBody),
+				},
+			}
+			resp := ResponseInfo{}
+			if v.response != nil {
+				mimeTypes, ok = v.response.Header["Content-Type"]
+				if ok {
+					mimeType = mimeTypes[0]
+				}
+				var headers []Header
+				for k, values := range v.response.Header {
+					for _, v := range values {
+						headers = append(headers, Header{Name: k, Value: v})
+					}
+				}
+				resp = ResponseInfo{
+					Content: ContentInfo{
+						Size:     len(v.responseBody),
+						MimeType: mimeType,
+						Text:     string(v.responseBody),
+					},
+					Headers:     headers,
+					HTTPVersion: v.response.Proto,
+					StatusText:  v.response.Status,
+					Status:      v.response.StatusCode,
+				}
+			}
+			entry := Entry{
+				Request:  req,
+				Response: resp,
+				// FIXME: add connection info
+			}
+			har.Log.Entries = append(har.Log.Entries, entry)
 		}
-		resp := ResponseInfo{
-			Content: ContentInfo{
-				Size:     len(v.responseBody),
-				MimeType: mimeType,
-				Text:     string(v.responseBody),
-			},
-			Headers:     headers,
-			HTTPVersion: v.response.Proto,
-			StatusText:  v.response.Status,
-			Status:      v.response.StatusCode,
-		}
-		entry := Entry{
-			Request:  req,
-			Response: resp,
-			// FIXME: add connection info
-		}
-		har.Log.Entries = append(har.Log.Entries, entry)
 	}
 
 	bytes, err := json.Marshal(har)
