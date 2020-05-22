@@ -137,11 +137,6 @@ func printRequests(r io.Reader, a, b gopacket.Flow) {
 			} else if err != nil {
 				// meh, guess it's not for us.
 			} else {
-				// FIXME: could do with bookmarking where we are with the reader
-				// so that we can just replay and suck it dry if we hit an error here.
-				// check size of alt
-				// then we can go from there.
-				// then suck down the rest from m
 				alt.Reset()
 				body, err := ioutil.ReadAll(res.Body)
 				if err != nil {
@@ -219,7 +214,6 @@ func main() {
 	//fmt.Printf("Found %d connections\n", connections)
 	for _, c := range conversations {
 		for _, v := range c {
-			// FIXME: plug into the har structure
 			var reqheaders []Header
 			for k, values := range v.request.Header {
 				for _, v := range values {
@@ -299,7 +293,6 @@ func main() {
 			entry := Entry{
 				Request:  req,
 				Response: resp,
-				// FIXME: add connection info
 			}
 			har.Log.Entries = append(har.Log.Entries, entry)
 		}
