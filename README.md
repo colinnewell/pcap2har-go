@@ -4,9 +4,6 @@
 
 This is a quick stab at a replacement for pcap2har written in Go.
 
-** This doesn't work very well yet.  You're still better off using the python
-original at the moment. **
-
 This is not complete, and is largely been driven by occasions where I
 need to analyse packet captures.  If you want a more complete program
 that does this look at https://github.com/andrewf/pcap2har.  That is a
@@ -31,6 +28,12 @@ It has various limitations.
 
 * joining up 2 sides of the conversation seems flawed.
 * no timestamps
+* ordering of HTTP requests get grouped up by tcp connection which may 
+  not match the chronological order.
+* http details may be obscured as the libraries I'm using automatically
+  decode http features like chunked encoding.  This can be really 
+  useful (not having to decode base64 content), or frustrating when
+  those details are what would help you spot a problem.
 
 In order to fix those limitations I'd probably need to extend or redo
 the existing tcpreader.
