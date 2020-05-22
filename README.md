@@ -4,6 +4,9 @@
 
 This is a quick stab at a replacement for pcap2har written in Go.
 
+** This doesn't work very well yet.  You're still better off using the python
+original at the moment. **
+
 This is not complete, and is largely been driven by occasions where I
 need to analyse packet captures.  If you want a more complete program
 that does this look at https://github.com/andrewf/pcap2har.  That is a
