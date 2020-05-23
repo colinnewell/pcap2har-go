@@ -56,7 +56,7 @@ In short, there's plenty more to do before this is complete, the code
 is more a proof of concept at this point.  It is amazing how far you
 can get so quickly with the existing Go libraries.
 
-IT's only been very lightly tested so far.  It really needs a lot of
+It's only been very lightly tested so far.  It really needs a lot of
 work before it's production ready.
 
 ## Building
