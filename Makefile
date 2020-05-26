@@ -1,7 +1,7 @@
 all: pcap2har
 
-pcap2har: main.go go.mod go.sum
-	go build -o pcap2har main.go
+pcap2har: cmd/pcap2har/main.go go.mod go.sum internal/reader/reader.go
+	go build -o pcap2har cmd/pcap2har/main.go
 
 test:
 	go test ./...
