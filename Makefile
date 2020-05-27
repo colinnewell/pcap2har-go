@@ -15,3 +15,8 @@ install:
 lint:
 	golangci-lint run
 	golint ./...
+
+fuzz:
+	go get github.com/dvyukov/go-fuzz/go-fuzz github.com/dvyukov/go-fuzz/go-fuzz-build
+	go-fuzz-build
+	go-fuzz -bin fuzz-fuzz.zip
