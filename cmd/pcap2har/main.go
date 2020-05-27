@@ -8,12 +8,12 @@ import (
 	"time"
 
 	"github.com/colinnewell/pcap2har-go/internal/reader"
+	"github.com/colinnewell/pcap2har-go/internal/streamfactory"
 
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
 	"github.com/google/gopacket/tcpassembly"
-	"github.com/google/gopacket/tcpassembly/tcpreader"
 )
 
 type Creator struct {
@@ -97,16 +97,6 @@ type Har struct {
 
 var har Har
 
-var rdr reader.HTTPConversationReaders
-
-type httpStreamFactory struct{}
-
-func (f *httpStreamFactory) New(a, b gopacket.Flow) tcpassembly.Stream {
-	r := tcpreader.NewReaderStream()
-	go rdr.ReadRequest(&r, a, b)
-	return &r
-}
-
 func main() {
 	files := os.Args[1:]
 
@@ -114,9 +104,9 @@ func main() {
 		log.Fatal("Must specify filename")
 	}
 
-	rdr = reader.New()
-
-	streamFactory := &httpStreamFactory{}
+	streamFactory := &streamfactory.HTTPStreamFactory{
+		Reader: reader.New(),
+	}
 	streamPool := tcpassembly.NewStreamPool(streamFactory)
 	assembler := tcpassembly.NewAssembler(streamPool)
 
@@ -140,7 +130,7 @@ func main() {
 
 	assembler.FlushAll()
 	//fmt.Printf("Found %d connections\n", connections)
-	c := rdr.GetConversations()
+	c := streamFactory.Reader.GetConversations()
 	for _, v := range c {
 		var reqheaders []Header
 		for k, values := range v.Request.Header {
