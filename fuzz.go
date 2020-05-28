@@ -41,6 +41,7 @@ func Fuzz(data []byte) int {
 	if handle, err := pcap.OpenOffline(tmpfile.Name()); err != nil {
 		return 0
 	} else {
+		defer handle.Close()
 		packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
 
 		for packet := range packetSource.Packets() {

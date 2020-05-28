@@ -114,6 +114,7 @@ func main() {
 		if handle, err := pcap.OpenOffline(filename); err != nil {
 			log.Fatal(err)
 		} else {
+			defer handle.Close()
 			packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
 
 			for packet := range packetSource.Packets() {
