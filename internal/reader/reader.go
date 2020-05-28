@@ -71,10 +71,15 @@ func (h *HTTPConversationReaders) ReadRequest(r io.Reader, a, b gopacket.Flow) {
 					}
 				}
 				address := ConversationAddress{IP: a.Reverse(), Port: b.Reverse()}
-				c := h.conversations[address][len(h.conversations[address])-1]
-				c.Response = res
-				c.ResponseBody = body
-				h.conversations[address][len(h.conversations[address])-1] = c
+				con := len(h.conversations[address]) - 1
+				if con >= 0 {
+					c := h.conversations[address][con]
+					c.Response = res
+					c.ResponseBody = body
+					h.conversations[address][con] = c
+				}
+				// FIXME: should think about what we do when we don't find
+				// the other side of the conversation.
 				if err != nil {
 					return
 				}
