@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/google/gopacket"
+	"github.com/google/gopacket/tcpassembly/tcpreader"
 )
 
 type HTTPConversationReaders struct {
@@ -66,6 +67,7 @@ func (h *HTTPConversationReaders) ReadRequest(r io.Reader, a, b gopacket.Flow) {
 					body, err = ioutil.ReadAll(rawBody)
 					if err != nil {
 						log.Println("Got an error trying to read it raw, let's just discard")
+						tcpreader.DiscardBytesToEOF(buf)
 					}
 				}
 				address := ConversationAddress{IP: a.Reverse(), Port: b.Reverse()}
@@ -73,6 +75,9 @@ func (h *HTTPConversationReaders) ReadRequest(r io.Reader, a, b gopacket.Flow) {
 				c.Response = res
 				c.ResponseBody = body
 				h.conversations[address][len(h.conversations[address])-1] = c
+				if err != nil {
+					return
+				}
 			}
 		} else {
 			address := ConversationAddress{IP: a, Port: b}
@@ -83,6 +88,7 @@ func (h *HTTPConversationReaders) ReadRequest(r io.Reader, a, b gopacket.Flow) {
 				body, err = ioutil.ReadAll(rawBody)
 				if err != nil {
 					log.Println("Got an error trying to read it raw, let's just discard")
+					tcpreader.DiscardBytesToEOF(buf)
 				}
 			}
 			h.conversations[address] = append(h.conversations[address], Conversation{
@@ -90,6 +96,9 @@ func (h *HTTPConversationReaders) ReadRequest(r io.Reader, a, b gopacket.Flow) {
 				Request:     req,
 				RequestBody: body,
 			})
+			if err != nil {
+				return
+			}
 		}
 		alt.Reset()
 	}
