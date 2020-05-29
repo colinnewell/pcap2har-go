@@ -15,7 +15,7 @@ files and it's a json is a convenient format to look through.
 
 http://www.softwareishard.com/blog/har-12-spec/
 
-Note that it's not going do well with TLS traffic, so this won't be
+Note that it's not going to do well with TLS traffic, so this won't be
 much use for most traffic you do with the outside these days.  This is
 often really handy for development however.  Especially with internal
 web service development.
