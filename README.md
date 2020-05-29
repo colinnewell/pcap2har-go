@@ -29,7 +29,8 @@ It has various limitations.
 * joining up 2 sides of the conversation seems flawed.
 * no timestamps
 * ordering of HTTP requests get grouped up by tcp connection which may 
-  not match the chronological order.
+  not match the chronological order.  It also tends to be fairly random due to
+  the asynchronous nature of the goroutines.
 * http details may be obscured as the libraries I'm using automatically
   decode http features like chunked encoding.  This can be really 
   useful (not having to decode base64 content), or frustrating when
