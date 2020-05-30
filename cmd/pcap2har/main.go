@@ -20,6 +20,7 @@ import (
 
 func main() {
 	var displayVersion bool
+
 	pflag.BoolVar(&displayVersion, "version", false, "Display program version")
 	pflag.Parse()
 
@@ -35,6 +36,7 @@ func main() {
 		fmt.Printf("Version: %s\n", buildVersion)
 		return
 	}
+
 	files := os.Args[1:]
 
 	if len(files) == 0 {
@@ -67,12 +69,13 @@ func main() {
 	}
 
 	assembler.FlushAll()
-	//fmt.Printf("Found %d connections\n", connections)
-	c := streamFactory.Reader.GetConversations()
 
 	var har har.Har
+	har.Log.Version = "1.2"
 	har.Log.Creator.Name = "pcap2har"
 	har.Log.Creator.Version = buildVersion
+
+	c := streamFactory.Reader.GetConversations()
 	for _, v := range c {
 		har.AddEntry(v)
 	}
