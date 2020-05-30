@@ -1,6 +1,7 @@
 package har
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/colinnewell/pcap2har-go/internal/reader"
@@ -17,8 +18,8 @@ type Page struct {
 	ID              string    `json:"id"`
 	Title           string    `json:"title"`
 	PageTimings     struct {
-		OnContentLoad float64     `json:"onContentLoad"`
-		OnLoad        interface{} `json:"onLoad"`
+		OnContentLoad float64 `json:"onContentLoad"`
+		OnLoad        float64 `json:"onLoad"`
 	} `json:"pageTimings"`
 }
 
@@ -56,16 +57,16 @@ type KeyValues struct {
 }
 
 type ResponseInfo struct {
-	Status       int           `json:"status"`
-	StatusText   string        `json:"statusText"`
-	HTTPVersion  string        `json:"httpVersion"`
-	Headers      []Header      `json:"headers"`
-	Cookies      []interface{} `json:"cookies"`
-	Content      ContentInfo   `json:"content"`
-	RedirectURL  string        `json:"redirectURL"`
-	HeadersSize  int           `json:"headersSize"`
-	BodySize     int           `json:"bodySize"`
-	TransferSize int           `json:"_transferSize"`
+	Status       int         `json:"status"`
+	StatusText   string      `json:"statusText"`
+	HTTPVersion  string      `json:"httpVersion"`
+	Headers      []Header    `json:"headers"`
+	Cookies      []Cookie    `json:"cookies"`
+	Content      ContentInfo `json:"content"`
+	RedirectURL  string      `json:"redirectURL"`
+	HeadersSize  int         `json:"headersSize"`
+	BodySize     int         `json:"bodySize"`
+	TransferSize int         `json:"_transferSize"`
 }
 
 type Entry struct {
@@ -170,4 +171,6 @@ func (h *Har) AddEntry(v reader.Conversation) {
 		Response: resp,
 	}
 	h.Log.Entries = append(h.Log.Entries, entry)
+	id := fmt.Sprintf("page_%d", len(h.Log.Pages)+1)
+	h.Log.Pages = append(h.Log.Pages, Page{ID: id, Title: entry.Request.URL})
 }
