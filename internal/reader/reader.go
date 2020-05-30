@@ -37,9 +37,7 @@ func New() HTTPConversationReaders {
 func (h *HTTPConversationReaders) GetConversations() []Conversation {
 	var conversations []Conversation
 	for _, c := range h.conversations {
-		for _, v := range c {
-			conversations = append(conversations, v)
-		}
+		conversations = append(conversations, c...)
 	}
 	return conversations
 }
