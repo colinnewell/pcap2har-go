@@ -37,6 +37,9 @@ func TestHarRequestOnly(t *testing.T) {
 	h.Log.Creator.Version = "test"
 
 	url, err := url.Parse("http://localhost:3000/test.html?q=3&v=4")
+	host := url.Host
+	// replicate situation we find when we construct Requests by reading.
+	url.Host = ""
 	if err != nil {
 		t.Error(err)
 	}
@@ -47,7 +50,7 @@ func TestHarRequestOnly(t *testing.T) {
 		Request: &http.Request{
 			Method:     "GET",
 			URL:        url,
-			Host:       url.Host, // this is where we actually read Host from
+			Host:       host,
 			Proto:      "HTTP/1.0",
 			ProtoMajor: 1,
 			ProtoMinor: 0,

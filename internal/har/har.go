@@ -86,6 +86,7 @@ type Har struct {
 	} `json:"log"`
 }
 
+// AddEntry extracts info from HTTP conversations and turns them into a Har Entry.
 func (h *Har) AddEntry(v reader.Conversation) {
 	var reqheaders []Header
 	for k, values := range v.Request.Header {
@@ -120,8 +121,9 @@ func (h *Har) AddEntry(v reader.Conversation) {
 	if ok {
 		mimeType = mimeTypes[0]
 	}
-	// for some reason host isn't hooked up
-	v.Request.URL.Host = v.Request.Host
+	if v.Request.URL.Host == "" {
+		v.Request.URL.Host = v.Request.Host
+	}
 	if v.Request.TLS == nil {
 		v.Request.URL.Scheme = "http"
 	} else {
