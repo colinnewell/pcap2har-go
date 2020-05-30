@@ -25,9 +25,12 @@ func main() {
 	if displayVersion {
 		bi, ok := debug.ReadBuildInfo()
 		if ok {
+			// NOTE: right now this probably always returns (devel).  Hopefully
+			// will improve with new versions of Go.  It might be neat to add
+			// dep info too at some point since that's part of the build info.
 			fmt.Printf("Version: %s\n", bi.Main.Version)
 		} else {
-			fmt.Println("This is embarrasing, I don't know how I was built!")
+			fmt.Println("This is embarrassing, I don't know how I was built!")
 		}
 		return
 	}
