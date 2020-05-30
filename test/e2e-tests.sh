@@ -4,8 +4,6 @@ function sort_data {
     jq ".log.entries[] | .$1" $2 | sort
 }
 
-cd $(dirname "${BASH_SOURCE[0]}")/..
-make
 cd $(dirname "${BASH_SOURCE[0]}")
 for f in captures/*.pcap
 do

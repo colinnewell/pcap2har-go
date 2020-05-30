@@ -4,8 +4,9 @@ pcap2har: cmd/pcap2har/main.go go.mod go.sum internal/reader/reader.go \
 			internal/har/har.go internal/streamfactory/factory.go
 	go build -o pcap2har cmd/pcap2har/main.go
 
-test: .force
+test: pcap2har .force
 	go test ./...
+	test/e2e-tests.sh
 
 # fake target (don't create a file or directory with this name)
 # allows us to ensure a target always gets run, even if there is a folder or
