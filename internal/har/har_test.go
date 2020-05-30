@@ -188,6 +188,10 @@ func TestHarFullConversation(t *testing.T) {
 
 	// FIXME: check the structure rather than the json.
 	// lists aren't guaranteed in a particular order.
+	// or perhaps sort, since we probably find the same
+	// problem when checking the structure
+	// having separate json output vs object building
+	// tests probably makes sense too.
 	bytes, err := json.MarshalIndent(h, "", "  ")
 	if err != nil {
 		t.Error(err)
