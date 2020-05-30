@@ -69,8 +69,8 @@ func main() {
 	assembler.FlushAll()
 	//fmt.Printf("Found %d connections\n", connections)
 	c := streamFactory.Reader.GetConversations()
+
 	var har har.Har
-	// FIXME: add version info.
 	har.Log.Creator.Name = "pcap2har"
 	har.Log.Creator.Version = buildVersion
 	for _, v := range c {
