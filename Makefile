@@ -1,6 +1,7 @@
 all: pcap2har
 
-pcap2har: cmd/pcap2har/main.go go.mod go.sum internal/reader/reader.go internal/har/har.go internal/streamfactory/factory.go
+pcap2har: cmd/pcap2har/main.go go.mod go.sum internal/reader/reader.go \
+			internal/har/har.go internal/streamfactory/factory.go
 	go build -o pcap2har cmd/pcap2har/main.go
 
 test: .force
@@ -25,6 +26,7 @@ lint:
 	golint ./...
 
 fuzz:
-	go get github.com/dvyukov/go-fuzz/go-fuzz github.com/dvyukov/go-fuzz/go-fuzz-build
+	go get github.com/dvyukov/go-fuzz/go-fuzz \
+			github.com/dvyukov/go-fuzz/go-fuzz-build
 	go-fuzz-build
 	go-fuzz -bin fuzz-fuzz.zip
