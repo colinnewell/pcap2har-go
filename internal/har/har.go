@@ -167,8 +167,9 @@ func (h *Har) AddEntry(v reader.Conversation) {
 		}
 	}
 	entry := Entry{
-		Request:  req,
-		Response: resp,
+		Request:         req,
+		Response:        resp,
+		ServerIPAddress: v.Address.IP.Dst().String(),
 	}
 	h.Log.Entries = append(h.Log.Entries, entry)
 	id := fmt.Sprintf("page_%d", len(h.Log.Pages)+1)
