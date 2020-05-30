@@ -6,6 +6,7 @@ import (
 	"github.com/colinnewell/pcap2har-go/internal/reader"
 )
 
+// Creator app that constructed the har output.
 type Creator struct {
 	Name    string `json:"name"`
 	Version string `json:"version"`

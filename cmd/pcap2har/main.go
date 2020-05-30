@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"runtime/debug"
 
 	"github.com/colinnewell/pcap2har-go/internal/har"
 	"github.com/colinnewell/pcap2har-go/internal/reader"
@@ -14,9 +15,22 @@ import (
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
 	"github.com/google/gopacket/tcpassembly"
+	"github.com/spf13/pflag"
 )
 
 func main() {
+	var displayVersion bool
+	pflag.BoolVar(&displayVersion, "version", false, "Display program version")
+	pflag.Parse()
+	if displayVersion {
+		bi, ok := debug.ReadBuildInfo()
+		if ok {
+			fmt.Printf("Version: %s\n", bi.Main.Version)
+		} else {
+			fmt.Println("This is embarrasing, I don't know how I was built!")
+		}
+		return
+	}
 	files := os.Args[1:]
 
 	if len(files) == 0 {
