@@ -22,16 +22,17 @@ func main() {
 	var displayVersion bool
 	pflag.BoolVar(&displayVersion, "version", false, "Display program version")
 	pflag.Parse()
+
+	buildVersion := "unknown"
+	if bi, ok := debug.ReadBuildInfo(); ok {
+		// NOTE: right now this probably always returns (devel).  Hopefully
+		// will improve with new versions of Go.  It might be neat to add
+		// dep info too at some point since that's part of the build info.
+		buildVersion = bi.Main.Version
+	}
+
 	if displayVersion {
-		bi, ok := debug.ReadBuildInfo()
-		if ok {
-			// NOTE: right now this probably always returns (devel).  Hopefully
-			// will improve with new versions of Go.  It might be neat to add
-			// dep info too at some point since that's part of the build info.
-			fmt.Printf("Version: %s\n", bi.Main.Version)
-		} else {
-			fmt.Println("This is embarrassing, I don't know how I was built!")
-		}
+		fmt.Printf("Version: %s\n", buildVersion)
 		return
 	}
 	files := os.Args[1:]
@@ -69,6 +70,9 @@ func main() {
 	//fmt.Printf("Found %d connections\n", connections)
 	c := streamFactory.Reader.GetConversations()
 	var har har.Har
+	// FIXME: add version info.
+	har.Log.Creator.Name = "pcap2har"
+	har.Log.Creator.Version = buildVersion
 	for _, v := range c {
 		har.AddEntry(v)
 	}
