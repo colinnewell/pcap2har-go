@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
 	"testing"
 
@@ -58,6 +59,12 @@ func TestHarRequestOnly(t *testing.T) {
 		},
 	}
 	h.AddEntry(r)
+
+	// sort the query string list to make the test results consistent
+	params := h.Log.Entries[0].Request.QueryString
+	sort.Slice(params, func(i, j int) bool {
+		return params[i].Name < params[j].Name
+	})
 
 	bytes, err := json.MarshalIndent(h, "", "  ")
 	if err != nil {
@@ -186,12 +193,11 @@ func TestHarFullConversation(t *testing.T) {
 	}
 	h.AddEntry(r)
 
-	// FIXME: check the structure rather than the json.
-	// lists aren't guaranteed in a particular order.
-	// or perhaps sort, since we probably find the same
-	// problem when checking the structure
-	// having separate json output vs object building
-	// tests probably makes sense too.
+	params := h.Log.Entries[0].Request.QueryString
+	sort.Slice(params, func(i, j int) bool {
+		return params[i].Name < params[j].Name
+	})
+
 	bytes, err := json.MarshalIndent(h, "", "  ")
 	if err != nil {
 		t.Error(err)
