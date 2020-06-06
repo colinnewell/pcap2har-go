@@ -76,7 +76,7 @@ func TestHTTPStreamRead(t *testing.T) {
 	r.ReadRequest(response, ipFlow.Reverse(), portFlow.Reverse())
 
 	expected := []reader.Conversation{
-		reader.Conversation{
+		{
 			Address: reader.ConversationAddress{IP: ipFlow, Port: portFlow},
 			Request: &http.Request{
 				Method:     "GET",
@@ -107,7 +107,7 @@ func TestHTTPStreamRead(t *testing.T) {
 			RequestBody:  []byte(""),
 			ResponseBody: []byte("{}"),
 		},
-		reader.Conversation{
+		{
 			Address: reader.ConversationAddress{IP: ipFlow, Port: portFlow},
 			Request: &http.Request{
 				Method:     "GET",
