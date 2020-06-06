@@ -9,8 +9,11 @@ COPY test /src/pcap2har-go/test/
 
 WORKDIR /src/pcap2har-go
 
+RUN go build -o pcap2har cmd/pcap2har/main.go
+
+FROM build AS test
+
 RUN go test ./... && \
-    go build -o pcap2har cmd/pcap2har/main.go && \
 	test/e2e-tests.sh
 
 FROM build AS lint
