@@ -60,6 +60,7 @@ func (h *HTTPConversationReaders) ReadRequest(r io.Reader, a, b gopacket.Flow) {
 				// meh, guess it's not for us.
 			} else {
 				alt.Reset()
+				defer res.Body.Close()
 				body, err := ioutil.ReadAll(res.Body)
 				if err != nil {
 					rawBody := io.MultiReader(&alt, buf)
