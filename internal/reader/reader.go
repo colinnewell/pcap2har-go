@@ -42,7 +42,7 @@ func (h *HTTPConversationReaders) GetConversations() []Conversation {
 	return conversations
 }
 
-// ReadRequest tries to read tcp connections and extract HTTP conversations
+// ReadRequest tries to read tcp connections and extract HTTP conversations.
 func (h *HTTPConversationReaders) ReadRequest(r io.Reader, a, b gopacket.Flow) {
 	var alt bytes.Buffer
 
