@@ -29,18 +29,18 @@ func newReader(data []string) *fakeReader {
 }
 
 func (f fakeReader) Read(p []byte) (n int, err error) {
-	if f.pos < len(f.data) {
-		n, err = f.data[f.pos].Read(p)
-		if err == io.EOF {
-			f.pos++
-			if f.pos < len(f.data) {
-				n, err = f.data[f.pos].Read(p)
-			}
-		}
-		return
-	} else {
+	if len(f.data) < f.pos {
 		return 0, io.EOF
 	}
+
+	n, err = f.data[f.pos].Read(p)
+	if err == io.EOF {
+		f.pos++
+		if f.pos < len(f.data) {
+			n, err = f.data[f.pos].Read(p)
+		}
+	}
+	return
 }
 
 func TestHTTPStreamRead(t *testing.T) {
