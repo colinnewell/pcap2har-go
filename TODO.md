@@ -1,6 +1,8 @@
 # Things that need doing
 
 * Add a test suite!
+* Github actions
+* Coverage
 * Test with truncated packets
 * Try rearranging packets
 * Drop packets
