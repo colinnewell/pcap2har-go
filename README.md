@@ -27,7 +27,6 @@ https://godoc.org/github.com/google/gopacket/tcpassembly/tcpreader
 It has various limitations.
 
 * joining up 2 sides of the conversation seems flawed.
-* no timestamps
 * ordering of HTTP requests get grouped up by tcp connection which may 
   not match the chronological order.  It also tends to be fairly random due to
   the asynchronous nature of the goroutines.
@@ -47,8 +46,6 @@ using the address pair to link them up, but if you got a repeat, that
 would go wrong.  Also I'm not really checking for dropped packets.  The
 library I'm using is paying attention to things like that, so it might
 be that all we do is not include those conversations in the output.
-The library takes timestamps and uses them to help construct packet
-captures, but doesn't provide that info when it has joined them up.
 
 We're also loading all this data into memory before outputting it to
 json.
