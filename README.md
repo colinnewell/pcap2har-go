@@ -36,6 +36,9 @@ It has various limitations.
   those details are what would help you spot a problem.
 * I haven't looked at how you'd decode TLS traffic.  Presumably I'd
   need to provide keys for that.
+* Timing info may not be perfect.  I need to test more thoroughly, but I
+  suspect the time for the entry will be derived from the timing of the data
+  packets, without taking into consideration the TCP handshake.
 
 In order to fix those limitations I'd probably need to extend or redo
 the existing tcpreader.
