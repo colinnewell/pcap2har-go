@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/colinnewell/pcap2har-go/internal/reader"
 	"github.com/google/go-cmp/cmp"
@@ -41,6 +42,10 @@ func (f fakeReader) Read(p []byte) (n int, err error) {
 		}
 	}
 	return
+}
+
+func (f fakeReader) Seen() (time.Time, error) {
+	return time.Time{}, nil
 }
 
 func TestHTTPStreamRead(t *testing.T) {
@@ -106,6 +111,8 @@ func TestHTTPStreamRead(t *testing.T) {
 			},
 			RequestBody:  []byte(""),
 			ResponseBody: []byte("{}"),
+			RequestSeen:  []time.Time{time.Time{}},
+			ResponseSeen: []time.Time{time.Time{}},
 		},
 		{
 			Address: reader.ConversationAddress{IP: ipFlow, Port: portFlow},
@@ -120,6 +127,8 @@ func TestHTTPStreamRead(t *testing.T) {
 				Body:       http.NoBody,
 				RequestURI: "/",
 			},
+			RequestSeen:  []time.Time{time.Time{}},
+			ResponseSeen: []time.Time{time.Time{}},
 			Response: &http.Response{
 				Status:     "200 OK",
 				StatusCode: 200,

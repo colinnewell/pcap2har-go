@@ -10,29 +10,29 @@ import (
 
 // clone of gopacket/tcpassembly/tcpreader/reader.go that allows timing info to be extracted
 
-// ReaderStream implements both tcpassembly.Stream and io.Reader.  You can use it
+// TCPReaderStream implements both tcpassembly.Stream and io.Reader.  You can use it
 // as a building block to make simple, easy stream handlers.
 //
-// IMPORTANT:  If you use a ReaderStream, you MUST read ALL BYTES from it,
+// IMPORTANT:  If you use a TCPReaderStream, you MUST read ALL BYTES from it,
 // quickly.  Not reading available bytes will block TCP stream reassembly.  It's
 // a common pattern to do this by starting a goroutine in the factory's New
 // method:
 //
 //  type myStreamHandler struct {
-//  	r ReaderStream
+//  	r TCPReaderStream
 //  }
 //  func (m *myStreamHandler) run() {
-//  	// Do something here that reads all of the ReaderStream, or your assembly
+//  	// Do something here that reads all of the TCPReaderStream, or your assembly
 //  	// will block.
 //  	fmt.Println(tcpreader.DiscardBytesToEOF(&m.r))
 //  }
 //  func (f *myStreamFactory) New(a, b gopacket.Flow) tcpassembly.Stream {
 //  	s := &myStreamHandler{}
 //  	go s.run()
-//  	// Return the ReaderStream as the stream that assembly should populate.
+//  	// Return the TCPReaderStream as the stream that assembly should populate.
 //  	return &s.r
 //  }
-type ReaderStream struct {
+type TCPReaderStream struct {
 	ReaderStreamOptions
 	reassembled  chan []tcpassembly.Reassembly
 	done         chan bool
@@ -43,7 +43,7 @@ type ReaderStream struct {
 	initiated    bool
 }
 
-// ReaderStreamOptions provides user-resettable options for a ReaderStream.
+// ReaderStreamOptions provides user-resettable options for a TCPReaderStream.
 type ReaderStreamOptions struct {
 	// LossErrors determines whether this stream will return
 	// ReaderStreamDataLoss errors from its Read function whenever it
@@ -51,9 +51,9 @@ type ReaderStreamOptions struct {
 	LossErrors bool
 }
 
-// NewReaderStream returns a new ReaderStream object.
-func NewReaderStream() ReaderStream {
-	r := ReaderStream{
+// NewReaderStream returns a new TCPReaderStream object.
+func NewReaderStream() TCPReaderStream {
+	r := TCPReaderStream{
 		reassembled: make(chan []tcpassembly.Reassembly),
 		done:        make(chan bool),
 		first:       true,
@@ -63,30 +63,30 @@ func NewReaderStream() ReaderStream {
 }
 
 // Reassembled implements tcpassembly.Stream's Reassembled function.
-func (r *ReaderStream) Reassembled(reassembly []tcpassembly.Reassembly) {
+func (r *TCPReaderStream) Reassembled(reassembly []tcpassembly.Reassembly) {
 	if !r.initiated {
-		panic("ReaderStream not created via NewReaderStream")
+		panic("TCPReaderStream not created via NewReaderStream")
 	}
 	r.reassembled <- reassembly
 	<-r.done
 }
 
 // ReassemblyComplete implements tcpassembly.Stream's ReassemblyComplete function.
-func (r *ReaderStream) ReassemblyComplete() {
+func (r *TCPReaderStream) ReassemblyComplete() {
 	close(r.reassembled)
 	close(r.done)
 }
 
 // stripEmpty strips empty reassembly slices off the front of its current set of
 // slices.
-func (r *ReaderStream) stripEmpty() {
+func (r *TCPReaderStream) stripEmpty() {
 	for len(r.current) > 0 && len(r.current[0].Bytes) == 0 {
 		r.current = r.current[1:]
 		r.lossReported = false
 	}
 }
 
-// DataLost is returned by the ReaderStream's Read function when it encounters
+// DataLost is returned by the TCPReaderStream's Read function when it encounters
 // a Reassembly with Skip != 0.
 var DataLost = errors.New("lost data")
 
@@ -94,9 +94,9 @@ var DataLost = errors.New("lost data")
 // Given a byte slice, it will either copy a non-zero number of bytes into
 // that slice and return the number of bytes and a nil error, or it will
 // leave slice p as is and return 0, io.EOF.
-func (r *ReaderStream) Read(p []byte) (int, error) {
+func (r *TCPReaderStream) Read(p []byte) (int, error) {
 	if !r.initiated {
-		panic("ReaderStream not created via NewReaderStream")
+		panic("TCPReaderStream not created via NewReaderStream")
 	}
 	var ok bool
 	r.stripEmpty()
@@ -133,7 +133,7 @@ func (r *ReaderStream) Read(p []byte) (int, error) {
 // If you use something like a buffered reader, you are quite likely to
 // see various data points dropped.  Perhaps wrap it up in something to
 // capture those times first.
-func (r *ReaderStream) Seen() (time.Time, error) {
+func (r *TCPReaderStream) Seen() (time.Time, error) {
 	if len(r.current) > 0 {
 		current := &r.current[0]
 		return current.Seen, nil
@@ -141,10 +141,10 @@ func (r *ReaderStream) Seen() (time.Time, error) {
 	return time.Time{}, io.EOF
 }
 
-// Close implements io.Closer's Close function, making ReaderStream a
+// Close implements io.Closer's Close function, making TCPReaderStream a
 // io.ReadCloser.  It discards all remaining bytes in the reassembly in a
 // manner that's safe for the assembler (IE: it doesn't block).
-func (r *ReaderStream) Close() error {
+func (r *TCPReaderStream) Close() error {
 	r.current = nil
 	r.closed = true
 	for {

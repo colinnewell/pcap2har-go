@@ -45,8 +45,13 @@ func (h *HTTPConversationReaders) GetConversations() []Conversation {
 	return conversations
 }
 
+type ReaderStream interface {
+	Read(p []byte) (n int, err error)
+	Seen() (time.Time, error)
+}
+
 // ReadRequest tries to read tcp connections and extract HTTP conversations.
-func (h *HTTPConversationReaders) ReadRequest(r *ReaderStream, a, b gopacket.Flow) {
+func (h *HTTPConversationReaders) ReadRequest(r ReaderStream, a, b gopacket.Flow) {
 	var alt bytes.Buffer
 
 	t := NewTimeCaptureReader(r)

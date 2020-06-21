@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/colinnewell/pcap2har-go/internal/har"
 	"github.com/colinnewell/pcap2har-go/internal/reader"
@@ -57,6 +58,7 @@ func TestHarRequestOnly(t *testing.T) {
 			ProtoMinor: 0,
 			Header:     http.Header{},
 		},
+		RequestSeen: []time.Time{time.Time{}},
 	}
 	h.AddEntry(r)
 
@@ -85,8 +87,8 @@ func TestHarRequestOnly(t *testing.T) {
 		`        "id": "page_1",`,
 		`        "title": "http://localhost:3000/test.html?q=3\u0026v=4",`,
 		`        "pageTimings": {`,
-		`          "onContentLoad": 0,`,
-		`          "onLoad": 0`,
+		`          "onContentLoad": -1,`,
+		`          "onLoad": -1`,
 		"        }",
 		"      }",
 		"    ],",
@@ -179,6 +181,7 @@ func TestHarFullConversation(t *testing.T) {
 			Header:     http.Header{},
 		},
 		RequestBody: []byte("request body"),
+		RequestSeen: []time.Time{time.Time{}},
 		Response: &http.Response{
 			Status:           "200 OK",
 			StatusCode:       200,
@@ -190,6 +193,7 @@ func TestHarFullConversation(t *testing.T) {
 			TransferEncoding: []string{"base64"},
 		},
 		ResponseBody: []byte("response body"),
+		ResponseSeen: []time.Time{time.Time{}},
 	}
 	h.AddEntry(r)
 
@@ -217,8 +221,8 @@ func TestHarFullConversation(t *testing.T) {
 		`        "id": "page_1",`,
 		`        "title": "http://localhost:3000/test.html?q=3\u0026v=4",`,
 		`        "pageTimings": {`,
-		`          "onContentLoad": 0,`,
-		`          "onLoad": 0`,
+		`          "onContentLoad": -1,`,
+		`          "onLoad": -1`,
 		"        }",
 		"      }",
 		"    ],",
