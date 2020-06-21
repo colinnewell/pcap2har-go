@@ -5,7 +5,6 @@ import (
 
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/tcpassembly"
-	"github.com/google/gopacket/tcpassembly/tcpreader"
 )
 
 type HTTPStreamFactory struct {
@@ -13,7 +12,7 @@ type HTTPStreamFactory struct {
 }
 
 func (f *HTTPStreamFactory) New(a, b gopacket.Flow) tcpassembly.Stream {
-	r := tcpreader.NewReaderStream()
+	r := reader.NewReaderStream()
 	go f.Reader.ReadRequest(&r, a, b)
 	return &r
 }

@@ -14,13 +14,15 @@ type Creator struct {
 }
 
 type Page struct {
-	StartedDateTime time.Time `json:"startedDateTime"`
-	ID              string    `json:"id"`
-	Title           string    `json:"title"`
-	PageTimings     struct {
-		OnContentLoad float64 `json:"onContentLoad"`
-		OnLoad        float64 `json:"onLoad"`
-	} `json:"pageTimings"`
+	StartedDateTime time.Time  `json:"startedDateTime"`
+	ID              string     `json:"id"`
+	Title           string     `json:"title"`
+	PageTimings     PageTiming `json:"pageTimings"`
+}
+
+type PageTiming struct {
+	OnContentLoad float64 `json:"onContentLoad"`
+	OnLoad        float64 `json:"onLoad"`
 }
 
 type Header KeyValues
@@ -70,8 +72,13 @@ type ResponseInfo struct {
 }
 
 type Entry struct {
-	StartedDateTime time.Time    `json:"startedDateTime"`
-	Time            float64      `json:"time"`
+	// start of connection
+	StartedDateTime time.Time `json:"startedDateTime"`
+	// time taken in ns
+	// FIXME: perhaps add timings?
+	// for true timings we'd need dns time too.
+	// could set to -1 initially I guess
+	Time            int64        `json:"time"`
 	Request         RequestInfo  `json:"request"`
 	Response        ResponseInfo `json:"response"`
 	ServerIPAddress string       `json:"serverIPAddress"`
@@ -142,6 +149,13 @@ func (h *Har) AddEntry(v reader.Conversation) {
 			Text:     string(v.RequestBody),
 		},
 	}
+	startTime := v.RequestSeen[0]
+	var duration time.Duration
+	if len(v.ResponseSeen) > 0 {
+		duration = v.ResponseSeen[len(v.ResponseSeen)-1].Sub(startTime)
+	} else {
+		duration = v.RequestSeen[len(v.RequestSeen)-1].Sub(startTime)
+	}
 	resp := ResponseInfo{}
 	if v.Response != nil {
 		mimeTypes, ok = v.Response.Header["Content-Type"]
@@ -169,9 +183,11 @@ func (h *Har) AddEntry(v reader.Conversation) {
 	entry := Entry{
 		Request:         req,
 		Response:        resp,
+		StartedDateTime: startTime,
+		Time:            duration.Nanoseconds(),
 		ServerIPAddress: v.Address.IP.Dst().String(),
 	}
 	h.Log.Entries = append(h.Log.Entries, entry)
 	id := fmt.Sprintf("page_%d", len(h.Log.Pages)+1)
-	h.Log.Pages = append(h.Log.Pages, Page{ID: id, Title: entry.Request.URL})
+	h.Log.Pages = append(h.Log.Pages, Page{ID: id, Title: entry.Request.URL, StartedDateTime: entry.StartedDateTime, PageTimings: PageTiming{-1, -1}})
 }

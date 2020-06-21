@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/tcpassembly/tcpreader"
@@ -25,6 +26,8 @@ type Conversation struct {
 	RequestBody  []byte
 	Response     *http.Response
 	ResponseBody []byte
+	RequestSeen  []time.Time
+	ResponseSeen []time.Time
 }
 
 func New() HTTPConversationReaders {
@@ -43,11 +46,13 @@ func (h *HTTPConversationReaders) GetConversations() []Conversation {
 }
 
 // ReadRequest tries to read tcp connections and extract HTTP conversations.
-func (h *HTTPConversationReaders) ReadRequest(r io.Reader, a, b gopacket.Flow) {
+func (h *HTTPConversationReaders) ReadRequest(r *ReaderStream, a, b gopacket.Flow) {
 	var alt bytes.Buffer
 
+	t := NewTimeCaptureReader(r)
+
 	for {
-		tee := io.TeeReader(r, &alt)
+		tee := io.TeeReader(t, &alt)
 		buf := bufio.NewReader(tee)
 		if req, err := http.ReadRequest(buf); err == io.EOF {
 			return
@@ -77,6 +82,7 @@ func (h *HTTPConversationReaders) ReadRequest(r io.Reader, a, b gopacket.Flow) {
 					if conversations[n].Response == nil {
 						c.Response = res
 						c.ResponseBody = body
+						c.ResponseSeen = t.Seen()
 						h.conversations[address][n] = c
 						break
 					}
@@ -103,11 +109,13 @@ func (h *HTTPConversationReaders) ReadRequest(r io.Reader, a, b gopacket.Flow) {
 				Address:     address,
 				Request:     req,
 				RequestBody: body,
+				RequestSeen: t.Seen(),
 			})
 			if err != nil {
 				return
 			}
 		}
 		alt.Reset()
+		t.Reset()
 	}
 }
