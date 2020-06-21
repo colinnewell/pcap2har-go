@@ -4,8 +4,10 @@ pcap2har: cmd/pcap2har/main.go go.mod go.sum internal/reader/reader.go \
 			internal/har/har.go internal/streamfactory/factory.go
 	go build -o pcap2har cmd/pcap2har/main.go
 
-test: pcap2har .force
+test: .force e2e-test
 	go test ./...
+
+e2e-test: pcap2har
 	test/e2e-tests.sh
 
 # fake target (don't create a file or directory with this name)
