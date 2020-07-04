@@ -2,7 +2,6 @@ package reader
 
 import (
 	"bufio"
-	"bytes"
 	"io"
 	"io/ioutil"
 	"log"
@@ -52,29 +51,28 @@ type ReaderStream interface {
 
 // ReadRequest tries to read tcp connections and extract HTTP conversations.
 func (h *HTTPConversationReaders) ReadRequest(r ReaderStream, a, b gopacket.Flow) {
-	var alt bytes.Buffer
-
 	t := NewTimeCaptureReader(r)
-
+	spr := NewSavePointReader(t)
 	for {
-		tee := io.TeeReader(t, &alt)
-		buf := bufio.NewReader(tee)
+		spr.SavePoint()
+		buf := bufio.NewReader(spr)
 		if req, err := http.ReadRequest(buf); err == io.EOF {
 			return
 		} else if err != nil {
-			m := io.MultiReader(&alt, buf)
-			buf := bufio.NewReader(m)
+			spr.Restore()
+			buf = bufio.NewReader(spr)
 			if res, err := http.ReadResponse(buf, nil); err == io.EOF {
 				return
 			} else if err != nil {
 				// meh, guess it's not for us.
 			} else {
-				alt.Reset()
+				spr.SavePoint()
 				defer res.Body.Close()
 				body, err := ioutil.ReadAll(res.Body)
 				if err != nil {
-					rawBody := io.MultiReader(&alt, buf)
-					body, err = ioutil.ReadAll(rawBody)
+					spr.Restore()
+					buf = bufio.NewReader(spr)
+					body, err = ioutil.ReadAll(buf)
 					if err != nil {
 						log.Println("Got an error trying to read it raw, let's just discard")
 						tcpreader.DiscardBytesToEOF(buf)
@@ -100,11 +98,12 @@ func (h *HTTPConversationReaders) ReadRequest(r ReaderStream, a, b gopacket.Flow
 			}
 		} else {
 			address := ConversationAddress{IP: a, Port: b}
-			alt.Reset()
+			spr.SavePoint()
 			body, err := ioutil.ReadAll(req.Body)
 			if err != nil {
-				rawBody := io.MultiReader(&alt, buf)
-				body, err = ioutil.ReadAll(rawBody)
+				spr.Restore()
+				buf = bufio.NewReader(spr)
+				body, err = ioutil.ReadAll(buf)
 				if err != nil {
 					log.Println("Got an error trying to read it raw, let's just discard")
 					tcpreader.DiscardBytesToEOF(buf)
@@ -120,7 +119,7 @@ func (h *HTTPConversationReaders) ReadRequest(r ReaderStream, a, b gopacket.Flow
 				return
 			}
 		}
-		alt.Reset()
+		spr.Reset()
 		t.Reset()
 	}
 }
