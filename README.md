@@ -78,3 +78,43 @@ HAR files contain a lot of info you probably don't need.  I like to use tools
 like jq to boil down the json into more concise info.
 
 	pcap2har packets.dump | jq '.log.entries[] | { url: .request.url, response: (if .response.content.mimeType == "application/json" then .response.content.text | gsub("\n"; "") | @base64d | fromjson else "" end), response_status: .response.status, query_string: .request.queryString }'
+
+## Debugging
+
+If you're having issues with the output in practice, and you want to grab the
+data being processed to help create a test the simplest way is to patch the
+code a little like this:
+
+	diff --git internal/reader/reader.go internal/reader/reader.go
+	index 6a22c3b..f311b1e 100644
+	--- internal/reader/reader.go
+	+++ internal/reader/reader.go
+	@@ -2,6 +2,7 @@ package reader
+
+	 import (
+			"bufio"
+	+       "bytes"
+			"io"
+			"io/ioutil"
+			"log"
+	@@ -51,8 +52,16 @@ type ReaderStream interface {
+
+	 // ReadRequest tries to read tcp connections and extract HTTP conversations.
+	 func (h *HTTPConversationReaders) ReadRequest(r ReaderStream, a, b gopacket.Flow) {
+	+
+			t := NewTimeCaptureReader(r)
+	-       spr := NewSavePointReader(t)
+	+
+	+       var debug bytes.Buffer
+	+       tee := io.TeeReader(t, &debug)
+	+       defer func() {
+	+               ioutil.WriteFile(b.String()+".test", debug.Bytes(), 0644)
+	+       }()
+	+
+	+       spr := NewSavePointReader(tee)
+			for {
+					spr.SavePoint()
+					buf := bufio.NewReader(spr)
+
+Note that this patch may not apply cleanly, this is just an example of a quick
+and simple way to generate files with the data being processed.
