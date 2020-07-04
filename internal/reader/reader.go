@@ -119,7 +119,6 @@ func (h *HTTPConversationReaders) ReadRequest(r ReaderStream, a, b gopacket.Flow
 				return
 			}
 		}
-		spr.Reset()
 		t.Reset()
 	}
 }
