@@ -49,8 +49,8 @@ type ReaderStream interface {
 	Seen() (time.Time, error)
 }
 
-// ReadRequest tries to read tcp connections and extract HTTP conversations.
-func (h *HTTPConversationReaders) ReadRequest(r ReaderStream, a, b gopacket.Flow) {
+// ReadStream tries to read tcp connections and extract HTTP conversations.
+func (h *HTTPConversationReaders) ReadStream(r ReaderStream, a, b gopacket.Flow) {
 	t := NewTimeCaptureReader(r)
 	spr := NewSavePointReader(t)
 	for {

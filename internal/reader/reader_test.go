@@ -77,8 +77,8 @@ func TestHTTPStreamRead(t *testing.T) {
 	portFlow := gopacket.NewFlow(4, []byte{0x23, 0x36}, []byte{0xa8, 0x0})
 
 	r := reader.New()
-	r.ReadRequest(req, ipFlow, portFlow)
-	r.ReadRequest(response, ipFlow.Reverse(), portFlow.Reverse())
+	r.ReadStream(req, ipFlow, portFlow)
+	r.ReadStream(response, ipFlow.Reverse(), portFlow.Reverse())
 
 	expected := []reader.Conversation{
 		{

@@ -13,6 +13,6 @@ type HTTPStreamFactory struct {
 
 func (f *HTTPStreamFactory) New(a, b gopacket.Flow) tcpassembly.Stream {
 	r := reader.NewReaderStream()
-	go f.Reader.ReadRequest(&r, a, b)
+	go f.Reader.ReadStream(&r, a, b)
 	return &r
 }
