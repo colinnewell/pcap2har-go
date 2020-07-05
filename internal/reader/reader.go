@@ -60,8 +60,6 @@ func (h *HTTPConversationReaders) ReadStream(r ReaderStream, a, b gopacket.Flow)
 		} else if err != nil {
 			spr.Restore(true)
 			err := h.ReadHTTPResponse(spr, t, a, b)
-			// FIXME: should think about what we do when we don't find
-			// the other side of the conversation.
 			if err != nil {
 				return
 			}
@@ -103,6 +101,8 @@ func (h *HTTPConversationReaders) ReadHTTPResponse(spr *SavePointReader, t *Time
 			h.conversations[address][n] = c
 			break
 		}
+		// FIXME: should think about what we do when we don't find
+		// the other side of the conversation.
 	}
 	return err
 }
