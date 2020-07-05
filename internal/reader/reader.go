@@ -54,37 +54,14 @@ func (h *HTTPConversationReaders) ReadStream(r ReaderStream, a, b gopacket.Flow)
 	t := NewTimeCaptureReader(r)
 	spr := NewSavePointReader(t)
 	for {
-		spr.SavePoint()
-		buf := bufio.NewReader(spr)
-		if req, err := http.ReadRequest(buf); err == io.EOF {
+		err := h.ReadHTTPRequest(spr, t, a, b)
+		if err == io.EOF {
 			return
 		} else if err != nil {
 			spr.Restore(true)
 			err := h.ReadHTTPResponse(spr, t, a, b)
 			// FIXME: should think about what we do when we don't find
 			// the other side of the conversation.
-			if err != nil {
-				return
-			}
-		} else {
-			address := ConversationAddress{IP: a, Port: b}
-			spr.SavePoint()
-			body, err := ioutil.ReadAll(req.Body)
-			if err != nil {
-				spr.Restore(true)
-				buf = bufio.NewReader(spr)
-				body, err = ioutil.ReadAll(buf)
-				if err != nil {
-					log.Println("Got an error trying to read it raw, let's just discard")
-					tcpreader.DiscardBytesToEOF(buf)
-				}
-			}
-			h.conversations[address] = append(h.conversations[address], Conversation{
-				Address:     address,
-				Request:     req,
-				RequestBody: body,
-				RequestSeen: t.Seen(),
-			})
 			if err != nil {
 				return
 			}
@@ -95,35 +72,68 @@ func (h *HTTPConversationReaders) ReadStream(r ReaderStream, a, b gopacket.Flow)
 
 func (h *HTTPConversationReaders) ReadHTTPResponse(spr *SavePointReader, t *TimeCaptureReader, a, b gopacket.Flow) error {
 	buf := bufio.NewReader(spr)
-	if res, err := http.ReadResponse(buf, nil); err == io.EOF {
+
+	res, err := http.ReadResponse(buf, nil)
+	if err == io.EOF {
 		return err
 	} else if err != nil {
 		return nil
-	} else {
-		spr.SavePoint()
-		defer res.Body.Close()
-		body, err := ioutil.ReadAll(res.Body)
+	}
+
+	spr.SavePoint()
+	defer res.Body.Close()
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		spr.Restore(true)
+		buf = bufio.NewReader(spr)
+		body, err = ioutil.ReadAll(buf)
 		if err != nil {
-			spr.Restore(true)
-			buf = bufio.NewReader(spr)
-			body, err = ioutil.ReadAll(buf)
-			if err != nil {
-				log.Println("Got an error trying to read it raw, let's just discard")
-				tcpreader.DiscardBytesToEOF(buf)
-			}
+			log.Println("Got an error trying to read it raw, let's just discard")
+			tcpreader.DiscardBytesToEOF(buf)
 		}
-		address := ConversationAddress{IP: a.Reverse(), Port: b.Reverse()}
-		conversations := h.conversations[address]
-		for n := 0; n < len(conversations); n++ {
-			c := conversations[n]
-			if conversations[n].Response == nil {
-				c.Response = res
-				c.ResponseBody = body
-				c.ResponseSeen = t.Seen()
-				h.conversations[address][n] = c
-				break
-			}
+	}
+	address := ConversationAddress{IP: a.Reverse(), Port: b.Reverse()}
+	conversations := h.conversations[address]
+	for n := 0; n < len(conversations); n++ {
+		c := conversations[n]
+		if conversations[n].Response == nil {
+			c.Response = res
+			c.ResponseBody = body
+			c.ResponseSeen = t.Seen()
+			h.conversations[address][n] = c
+			break
 		}
+	}
+	return err
+}
+func (h *HTTPConversationReaders) ReadHTTPRequest(spr *SavePointReader, t *TimeCaptureReader, a, b gopacket.Flow) error {
+	spr.SavePoint()
+	buf := bufio.NewReader(spr)
+
+	req, err := http.ReadRequest(buf)
+	if err != nil {
 		return err
 	}
+
+	spr.SavePoint()
+	defer req.Body.Close()
+	body, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		spr.Restore(true)
+		buf = bufio.NewReader(spr)
+		body, err = ioutil.ReadAll(buf)
+		if err != nil {
+			log.Println("Got an error trying to read it raw, let's just discard")
+			tcpreader.DiscardBytesToEOF(buf)
+		}
+	}
+
+	address := ConversationAddress{IP: a, Port: b}
+	h.conversations[address] = append(h.conversations[address], Conversation{
+		Address:     address,
+		Request:     req,
+		RequestBody: body,
+		RequestSeen: t.Seen(),
+	})
+	return err
 }
