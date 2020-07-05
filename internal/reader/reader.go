@@ -60,7 +60,11 @@ func (h *HTTPConversationReaders) ReadStream(r ReaderStream, a, b gopacket.Flow)
 		} else if err != nil {
 			spr.Restore(true)
 			err := h.ReadHTTPResponse(spr, t, a, b)
-			if err != nil {
+			if err == io.EOF {
+				return
+			} else if err != nil {
+				// we don't understand this stream, let's just dump it
+				tcpreader.DiscardBytesToEOF(spr)
 				return
 			}
 		}
@@ -72,10 +76,8 @@ func (h *HTTPConversationReaders) ReadHTTPResponse(spr *SavePointReader, t *Time
 	buf := bufio.NewReader(spr)
 
 	res, err := http.ReadResponse(buf, nil)
-	if err == io.EOF {
+	if err != nil {
 		return err
-	} else if err != nil {
-		return nil
 	}
 
 	spr.SavePoint()
