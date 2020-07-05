@@ -11,6 +11,10 @@ import (
 // back to that point to try a different parser.
 // This is done by storing the data being read, so do Reset the save point once
 // you have determined you're going down the correct path.
+//
+// Note that if this is wrapped within something like a bufio.Reader you may
+// need to construct a fresh wrapper to prevent the buffering from adversely
+// affecting your results when restoring back to a save point.
 type SavePointReader struct {
 	r             io.Reader
 	alt           bytes.Buffer
