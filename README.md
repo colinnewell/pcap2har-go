@@ -77,7 +77,7 @@ This requires the libpcap development library (and Go).
 HAR files contain a lot of info you probably don't need.  I like to use tools
 like jq to boil down the json into more concise info.
 
-	pcap2har packets.dump | jq '.log.entries[] | { url: .request.url, response: (if .response.content.mimeType == "application/json" then .response.content.text | gsub("\n"; "") | @base64d | fromjson else "" end), response_status: .response.status, query_string: .request.queryString }'
+	pcap2har packets.dump | jq '.log.entries[] | { url: .request.url, response: (if .response.content.mimeType == "application/json" then .response.content.text | fromjson else .response.content.text end), response_status: .response.status, query_string: .request.queryString }'
 
 ## Debugging
 
