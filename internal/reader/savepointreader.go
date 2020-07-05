@@ -17,6 +17,8 @@ type SavePointReader struct {
 	currentReader io.Reader
 }
 
+// NewSavePointReader wrap an io.Reader in a SavePointReader and return the new
+// SavePointReader.
 func NewSavePointReader(r io.Reader) *SavePointReader {
 	return &SavePointReader{r: r, currentReader: r}
 }
