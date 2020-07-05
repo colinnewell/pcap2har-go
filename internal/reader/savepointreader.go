@@ -38,11 +38,25 @@ func (sp *SavePointReader) Reset() {
 // this point to be read from again.
 func (sp *SavePointReader) SavePoint() {
 	sp.Reset()
-	tee := io.TeeReader(sp.r, &sp.alt)
-	sp.currentReader = tee
+	sp.setupSavePointReader()
 }
 
-// Restore roll the reader back to the save point
-func (sp *SavePointReader) Restore() {
-	sp.currentReader = io.MultiReader(&sp.alt, sp.r)
+func (sp *SavePointReader) setupSavePointReader() {
+	sp.currentReader = io.TeeReader(sp.r, &sp.alt)
+}
+
+// Restore roll the reader back to the save point.
+//
+// If you're sure you're not going to need to restore again you can discard the
+// save point and avoid continuing to populate the buffer as you continue
+// reading onwards.
+func (sp *SavePointReader) Restore(discardSavePoint bool) {
+	var rdr io.Reader
+	if discardSavePoint {
+		rdr = sp.r
+	} else {
+		sp.setupSavePointReader()
+		rdr = sp.currentReader
+	}
+	sp.currentReader = io.MultiReader(&sp.alt, rdr)
 }

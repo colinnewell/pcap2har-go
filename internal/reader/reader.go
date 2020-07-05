@@ -59,7 +59,7 @@ func (h *HTTPConversationReaders) ReadRequest(r ReaderStream, a, b gopacket.Flow
 		if req, err := http.ReadRequest(buf); err == io.EOF {
 			return
 		} else if err != nil {
-			spr.Restore()
+			spr.Restore(true)
 			buf = bufio.NewReader(spr)
 			if res, err := http.ReadResponse(buf, nil); err == io.EOF {
 				return
@@ -70,7 +70,7 @@ func (h *HTTPConversationReaders) ReadRequest(r ReaderStream, a, b gopacket.Flow
 				defer res.Body.Close()
 				body, err := ioutil.ReadAll(res.Body)
 				if err != nil {
-					spr.Restore()
+					spr.Restore(true)
 					buf = bufio.NewReader(spr)
 					body, err = ioutil.ReadAll(buf)
 					if err != nil {
@@ -101,7 +101,7 @@ func (h *HTTPConversationReaders) ReadRequest(r ReaderStream, a, b gopacket.Flow
 			spr.SavePoint()
 			body, err := ioutil.ReadAll(req.Body)
 			if err != nil {
-				spr.Restore()
+				spr.Restore(true)
 				buf = bufio.NewReader(spr)
 				body, err = ioutil.ReadAll(buf)
 				if err != nil {

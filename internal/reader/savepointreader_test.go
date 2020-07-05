@@ -1,6 +1,7 @@
 package reader_test
 
 import (
+	"io/ioutil"
 	"strings"
 	"testing"
 
@@ -28,7 +29,7 @@ func TestSavePointReader(t *testing.T) {
 		t.Errorf("Next read failed")
 	}
 
-	sp.Restore()
+	sp.Restore(false)
 
 	sp.Read(buf[:])
 
@@ -59,11 +60,30 @@ func TestSavePointReader(t *testing.T) {
 		t.Errorf("Next read failed")
 	}
 
-	sp.Restore()
+	sp.Restore(false)
 	sp.Read(buf[:])
 
 	if !cmp.Equal(buf[:], []byte("do l")) {
 		t.Errorf("Next read failed")
+	}
+
+	rest, err := ioutil.ReadAll(sp)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if !cmp.Equal(rest, []byte("ots")) {
+		t.Errorf("Next read failed")
+	}
+
+	sp.Restore(true)
+	rest, err = ioutil.ReadAll(sp)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if diff := cmp.Diff(rest, []byte("do lots")); diff != "" {
+		t.Errorf("Final read after restore\n%s", diff)
 	}
 }
 
