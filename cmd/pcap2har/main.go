@@ -79,6 +79,7 @@ func main() {
 	for _, v := range c {
 		har.AddEntry(v)
 	}
+	har.FinaliseAndSort()
 
 	bytes, err := json.Marshal(har)
 	if err != nil {

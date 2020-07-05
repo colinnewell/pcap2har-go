@@ -2,6 +2,7 @@ package har
 
 import (
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/colinnewell/pcap2har-go/internal/reader"
@@ -188,6 +189,18 @@ func (h *Har) AddEntry(v reader.Conversation) {
 		ServerIPAddress: v.Address.IP.Dst().String(),
 	}
 	h.Log.Entries = append(h.Log.Entries, entry)
-	id := fmt.Sprintf("page_%d", len(h.Log.Pages)+1)
-	h.Log.Pages = append(h.Log.Pages, Page{ID: id, Title: entry.Request.URL, StartedDateTime: entry.StartedDateTime, PageTimings: PageTiming{-1, -1}})
+}
+
+// FinaliseAndSort sort the requests by time and fill in the summary structures
+// (pages)
+func (h *Har) FinaliseAndSort() {
+	entries := h.Log.Entries
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].StartedDateTime.Before(entries[j].StartedDateTime)
+	})
+
+	for i, entry := range entries {
+		id := fmt.Sprintf("page_%d", i+1)
+		h.Log.Pages = append(h.Log.Pages, Page{ID: id, Title: entry.Request.URL, StartedDateTime: entry.StartedDateTime, PageTimings: PageTiming{-1, -1}})
+	}
 }

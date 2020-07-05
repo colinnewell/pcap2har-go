@@ -67,6 +67,7 @@ func TestHarRequestOnly(t *testing.T) {
 	sort.Slice(params, func(i, j int) bool {
 		return params[i].Name < params[j].Name
 	})
+	h.FinaliseAndSort()
 
 	bytes, err := json.MarshalIndent(h, "", "  ")
 	if err != nil {
@@ -201,6 +202,7 @@ func TestHarFullConversation(t *testing.T) {
 	sort.Slice(params, func(i, j int) bool {
 		return params[i].Name < params[j].Name
 	})
+	h.FinaliseAndSort()
 
 	bytes, err := json.MarshalIndent(h, "", "  ")
 	if err != nil {
