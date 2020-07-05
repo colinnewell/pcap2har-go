@@ -18,7 +18,7 @@ This requires the libpcap development library (and Go).
 ## Using
 
 	sudo tcpdump port 80 -w packets.dump
-	pcap2har packets.dump
+	pcap2har packets.dump > traffic.har
 
 HAR files contain a lot of info you probably don't need.  I like to use tools
 like jq to boil down the json into more concise info.  
