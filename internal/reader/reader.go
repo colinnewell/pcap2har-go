@@ -55,24 +55,32 @@ func (h *HTTPConversationReaders) ReadStream(r ReaderStream, a, b gopacket.Flow)
 	spr := NewSavePointReader(t)
 	for {
 		err := h.ReadHTTPRequest(spr, t, a, b)
+		// FIXME: can we restructure this to be a list of things to try?
 		if err == io.EOF {
 			return
 		} else if err != nil {
-			spr.Restore(true)
+			spr.Restore(false)
 			err := h.ReadHTTPResponse(spr, t, a, b)
 			if err == io.EOF {
 				return
 			} else if err != nil {
-				// we don't understand this stream, let's just dump it
-				tcpreader.DiscardBytesToEOF(spr)
-				return
+				spr.Restore(true)
+				// lets see if we have a FCGI request
+				err := h.ReadFCGIRequest(spr, t, a, b)
+				if err == io.EOF {
+					return
+				} else if err != nil {
+					// we don't understand this stream, let's just dump it
+					tcpreader.DiscardBytesToEOF(spr)
+					return
+				}
 			}
 		}
 		t.Reset()
 	}
 }
 
-// ReadHTTPResponse try to read the stream as an HTTP response
+// ReadHTTPResponse try to read the stream as an HTTP response.
 func (h *HTTPConversationReaders) ReadHTTPResponse(spr *SavePointReader, t *TimeCaptureReader, a, b gopacket.Flow) error {
 	buf := bufio.NewReader(spr)
 
@@ -93,24 +101,11 @@ func (h *HTTPConversationReaders) ReadHTTPResponse(spr *SavePointReader, t *Time
 			tcpreader.DiscardBytesToEOF(buf)
 		}
 	}
-	address := ConversationAddress{IP: a.Reverse(), Port: b.Reverse()}
-	conversations := h.conversations[address]
-	for n := 0; n < len(conversations); n++ {
-		c := conversations[n]
-		if conversations[n].Response == nil {
-			c.Response = res
-			c.ResponseBody = body
-			c.ResponseSeen = t.Seen()
-			h.conversations[address][n] = c
-			break
-		}
-		// FIXME: should think about what we do when we don't find
-		// the other side of the conversation.
-	}
+	h.addResponse(a, b, res, body, t.Seen())
 	return err
 }
 
-// ReadHTTPRequest try to read the stream as an HTTP request
+// ReadHTTPRequest try to read the stream as an HTTP request.
 func (h *HTTPConversationReaders) ReadHTTPRequest(spr *SavePointReader, t *TimeCaptureReader, a, b gopacket.Flow) error {
 	spr.SavePoint()
 	buf := bufio.NewReader(spr)
@@ -145,4 +140,21 @@ func (h *HTTPConversationReaders) addRequest(a, b gopacket.Flow, req *http.Reque
 		RequestBody: body,
 		RequestSeen: seen,
 	})
+}
+
+func (h *HTTPConversationReaders) addResponse(a, b gopacket.Flow, res *http.Response, body []byte, seen []time.Time) {
+	address := ConversationAddress{IP: a.Reverse(), Port: b.Reverse()}
+	conversations := h.conversations[address]
+	for n := 0; n < len(conversations); n++ {
+		c := conversations[n]
+		if conversations[n].Response == nil {
+			c.Response = res
+			c.ResponseBody = body
+			c.ResponseSeen = seen
+			h.conversations[address][n] = c
+			break
+		}
+		// FIXME: should think about what we do when we don't find
+		// the other side of the conversation.
+	}
 }

@@ -69,6 +69,8 @@ It has various limitations.
   received.
 * Data not understood or missing is likely to be silently dropped with no
   indication that it was missed.
+* FastCGI implementation is very simple and crude and seems to glitch a lot
+  currently.  Need to figure out the reasons for that.
 
 I have replicated some of the existing tcp reader code to give access to the
 timing information I have extracted.  It might be good to contribute this back

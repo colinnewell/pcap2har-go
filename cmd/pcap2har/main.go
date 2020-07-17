@@ -69,6 +69,9 @@ func main() {
 	}
 
 	assembler.FlushAll()
+	// using go routines within go routines so we need to wait until things are
+	// done
+	streamFactory.Wait()
 
 	var har har.Har
 	har.Log.Version = "1.2"
