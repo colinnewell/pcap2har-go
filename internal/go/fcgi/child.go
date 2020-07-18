@@ -2,12 +2,15 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// this is modified from the core Go source code.
+
 package fcgi
 
 // This file implements FastCGI from the perspective of a Child process.
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -17,7 +20,6 @@ import (
 // request holds the state for an in-progress request. As soon as it's complete,
 // it's converted to an http.Request.
 type request struct {
-	pw        *io.PipeWriter
 	reqId     uint16
 	params    map[string]string
 	buf       [1024]byte
@@ -66,14 +68,11 @@ func (r *request) parseParams() {
 }
 
 type Child struct {
-	conn *conn
-
 	requests map[uint16]*request // keyed by request ID
 }
 
-func newChild(rwc io.ReadWriteCloser) *Child {
+func NewChild() *Child {
 	return &Child{
-		conn:     newConn(rwc),
 		requests: make(map[uint16]*request),
 	}
 }
@@ -84,6 +83,7 @@ func (c *Child) ReadRequest(rdr io.Reader) {
 		if err := rec.read(rdr); err != nil {
 			return
 		}
+		fmt.Printf("%#v\n", rec.h)
 		if err := c.handleRecord(&rec); err != nil {
 			return
 		}
@@ -104,7 +104,12 @@ var ErrConnClosed = errors.New("fcgi: connection to web server closed")
 
 func (c *Child) handleRecord(rec *record) error {
 	req, ok := c.requests[rec.h.Id]
-	if !ok && rec.h.Type != typeBeginRequest && rec.h.Type != typeGetValues {
+	// FIXME: need to detect when we don't have a request I guess
+	if !ok &&
+		rec.h.Type != typeBeginRequest &&
+		rec.h.Type != typeStdout &&
+		rec.h.Type != typeStderr &&
+		rec.h.Type != typeGetValues {
 		// The spec says to ignore unknown request IDs.
 		return nil
 	}
@@ -122,7 +127,8 @@ func (c *Child) handleRecord(rec *record) error {
 			return err
 		}
 		if br.role != roleResponder {
-			c.conn.writeEndRequest(rec.h.Id, 0, statusUnknownRole)
+			// FIXME: we don't know how to deal with this. perhaps return an error?
+			// or just drop the traffic?
 			return nil
 		}
 		req = newRequest(rec.h.Id, br.flags)
@@ -136,50 +142,36 @@ func (c *Child) handleRecord(rec *record) error {
 			return nil
 		}
 		req.parseParams()
+		fmt.Printf("%#v\n", req.params)
+		return nil
+	// FIXME: also add in the things for responses
+	case typeStderr:
+		content := rec.content()
+		fmt.Printf("Errors:\n%s", content)
+		return nil
+	case typeStdout:
+		content := rec.content()
+		fmt.Printf("Body:\n%s", content)
 		return nil
 	case typeStdin:
 		content := rec.content()
-		if req.pw == nil {
-			var body io.ReadCloser
-			if len(content) > 0 {
-				// body could be an io.LimitReader, but it shouldn't matter
-				// as long as both sides are behaving.
-				body, req.pw = io.Pipe()
-			} else {
-				body = emptyBody
-			}
-			go c.serveRequest(req, body)
-		}
-		if len(content) > 0 {
-			// TODO(eds): This blocks until the handler reads from the pipe.
-			// If the handler takes a long time, it might be a problem.
-			req.pw.Write(content)
-		} else if req.pw != nil {
-			req.pw.Close()
-		}
+		fmt.Printf("Body:\n%s", content)
 		return nil
 	case typeGetValues:
-		values := map[string]string{"FCGI_MPXS_CONNS": "1"}
-		c.conn.writePairs(typeGetValuesResult, 0, values)
+		// probably don't do anything here.  looks like something supposed to
+		// illicit a response from the server which we might be interested in,
+		// but not the fact that it was requested.
 		return nil
 	case typeData:
 		// If the filter role is implemented, read the data stream here.
+		// FIXME:
 		return nil
 	case typeAbortRequest:
+		// perhaps add that to the HAR?
 		delete(c.requests, rec.h.Id)
-		c.conn.writeEndRequest(rec.h.Id, 0, statusRequestComplete)
-		if req.pw != nil {
-			req.pw.CloseWithError(ErrRequestAborted)
-		}
-		if !req.keepConn {
-			// connection will close upon return
-			return errCloseConn
-		}
 		return nil
 	default:
-		b := make([]byte, 8)
-		b[0] = byte(rec.h.Type)
-		c.conn.writeRecord(typeUnknownType, 0, b)
+		// FIXME: perhaps log for now?
 		return nil
 	}
 }

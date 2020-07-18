@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// this is modified from the core Go source code.
+
 // Package fcgi implements the FastCGI protocol.
 //
 // See https://fast-cgi.github.io/ for an unofficial mirror of the
@@ -14,7 +16,6 @@ package fcgi
 // the host.
 
 import (
-	"bytes"
 	"encoding/binary"
 	"errors"
 	"io"
@@ -93,23 +94,6 @@ func (h *header) init(recType recType, reqId uint16, contentLength int) {
 	h.Id = reqId
 	h.ContentLength = uint16(contentLength)
 	h.PaddingLength = uint8(-contentLength & 7)
-}
-
-// conn sends records over rwc
-type conn struct {
-	rwc io.ReadWriteCloser
-
-	// to avoid allocations
-	buf bytes.Buffer
-	h   header
-}
-
-func newConn(rwc io.ReadWriteCloser) *conn {
-	return &conn{rwc: rwc}
-}
-
-func (c *conn) Close() error {
-	return c.rwc.Close()
 }
 
 type record struct {
