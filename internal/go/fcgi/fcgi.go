@@ -14,12 +14,10 @@ package fcgi
 // the host.
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/binary"
 	"errors"
 	"io"
-	"sync"
 )
 
 // recType is a record type, as defined by
@@ -99,8 +97,7 @@ func (h *header) init(recType recType, reqId uint16, contentLength int) {
 
 // conn sends records over rwc
 type conn struct {
-	mutex sync.Mutex
-	rwc   io.ReadWriteCloser
+	rwc io.ReadWriteCloser
 
 	// to avoid allocations
 	buf bytes.Buffer
@@ -112,8 +109,6 @@ func newConn(rwc io.ReadWriteCloser) *conn {
 }
 
 func (c *conn) Close() error {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
 	return c.rwc.Close()
 }
 
@@ -138,52 +133,6 @@ func (rec *record) read(r io.Reader) (err error) {
 
 func (r *record) content() []byte {
 	return r.buf[:r.h.ContentLength]
-}
-
-// writeRecord writes and sends a single record.
-func (c *conn) writeRecord(recType recType, reqId uint16, b []byte) error {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	c.buf.Reset()
-	c.h.init(recType, reqId, len(b))
-	if err := binary.Write(&c.buf, binary.BigEndian, c.h); err != nil {
-		return err
-	}
-	if _, err := c.buf.Write(b); err != nil {
-		return err
-	}
-	if _, err := c.buf.Write(pad[:c.h.PaddingLength]); err != nil {
-		return err
-	}
-	_, err := c.rwc.Write(c.buf.Bytes())
-	return err
-}
-
-func (c *conn) writeEndRequest(reqId uint16, appStatus int, protocolStatus uint8) error {
-	b := make([]byte, 8)
-	binary.BigEndian.PutUint32(b, uint32(appStatus))
-	b[4] = protocolStatus
-	return c.writeRecord(typeEndRequest, reqId, b)
-}
-
-func (c *conn) writePairs(recType recType, reqId uint16, pairs map[string]string) error {
-	w := newWriter(c, recType, reqId)
-	b := make([]byte, 8)
-	for k, v := range pairs {
-		n := encodeSize(b, uint32(len(k)))
-		n += encodeSize(b[n:], uint32(len(v)))
-		if _, err := w.Write(b[:n]); err != nil {
-			return err
-		}
-		if _, err := w.WriteString(k); err != nil {
-			return err
-		}
-		if _, err := w.WriteString(v); err != nil {
-			return err
-		}
-	}
-	w.Close()
-	return nil
 }
 
 func readSize(s []byte) (uint32, int) {
@@ -217,54 +166,4 @@ func encodeSize(b []byte, size uint32) int {
 	}
 	b[0] = byte(size)
 	return 1
-}
-
-// bufWriter encapsulates bufio.Writer but also closes the underlying stream when
-// Closed.
-type bufWriter struct {
-	closer io.Closer
-	*bufio.Writer
-}
-
-func (w *bufWriter) Close() error {
-	if err := w.Writer.Flush(); err != nil {
-		w.closer.Close()
-		return err
-	}
-	return w.closer.Close()
-}
-
-func newWriter(c *conn, recType recType, reqId uint16) *bufWriter {
-	s := &streamWriter{c: c, recType: recType, reqId: reqId}
-	w := bufio.NewWriterSize(s, maxWrite)
-	return &bufWriter{s, w}
-}
-
-// streamWriter abstracts out the separation of a stream into discrete records.
-// It only writes maxWrite bytes at a time.
-type streamWriter struct {
-	c       *conn
-	recType recType
-	reqId   uint16
-}
-
-func (w *streamWriter) Write(p []byte) (int, error) {
-	nn := 0
-	for len(p) > 0 {
-		n := len(p)
-		if n > maxWrite {
-			n = maxWrite
-		}
-		if err := w.c.writeRecord(w.recType, w.reqId, p[:n]); err != nil {
-			return nn, err
-		}
-		nn += n
-		p = p[n:]
-	}
-	return nn, nil
-}
-
-func (w *streamWriter) Close() error {
-	// send empty record to close the stream
-	return w.c.writeRecord(w.recType, w.reqId, nil)
 }

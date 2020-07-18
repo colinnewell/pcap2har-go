@@ -66,26 +66,22 @@ func (r *request) parseParams() {
 }
 
 type Child struct {
-	conn    *conn
-	handler http.Handler
+	conn *conn
 
 	requests map[uint16]*request // keyed by request ID
 }
 
-func newChild(rwc io.ReadWriteCloser, handler http.Handler) *Child {
+func newChild(rwc io.ReadWriteCloser) *Child {
 	return &Child{
 		conn:     newConn(rwc),
-		handler:  handler,
 		requests: make(map[uint16]*request),
 	}
 }
 
-func (c *Child) serve() {
-	defer c.conn.Close()
-	defer c.cleanUp()
+func (c *Child) ReadRequest(rdr io.Reader) {
 	var rec record
 	for {
-		if err := rec.read(c.conn.rwc); err != nil {
+		if err := rec.read(rdr); err != nil {
 			return
 		}
 		if err := c.handleRecord(&rec); err != nil {
@@ -198,16 +194,6 @@ func filterOutUsedEnvVars(envVars map[string]string) map[string]string {
 		}
 	}
 	return withoutUsedEnvVars
-}
-
-func (c *Child) cleanUp() {
-	for _, req := range c.requests {
-		if req.pw != nil {
-			// race with call to Close in c.serveRequest doesn't matter because
-			// Pipe(Reader|Writer).Close are idempotent
-			req.pw.CloseWithError(ErrConnClosed)
-		}
-	}
 }
 
 // ProcessEnv returns FastCGI environment variables associated with the request r
