@@ -133,12 +133,16 @@ func (h *HTTPConversationReaders) ReadHTTPRequest(spr *SavePointReader, t *TimeC
 		}
 	}
 
+	h.addRequest(a, b, req, body, t.Seen())
+	return err
+}
+
+func (h *HTTPConversationReaders) addRequest(a, b gopacket.Flow, req *http.Request, body []byte, seen []time.Time) {
 	address := ConversationAddress{IP: a, Port: b}
 	h.conversations[address] = append(h.conversations[address], Conversation{
 		Address:     address,
 		Request:     req,
 		RequestBody: body,
-		RequestSeen: t.Seen(),
+		RequestSeen: seen,
 	})
-	return err
 }
