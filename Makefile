@@ -1,4 +1,7 @@
-all: pcap2har
+all: pcap2har fcgi
+
+fcgi: cmd/fcgi/main.go internal/go/fcgi/*.go
+	go build -o fcgi cmd/fcgi/main.go
 
 pcap2har: cmd/pcap2har/main.go go.mod go.sum internal/reader/reader.go \
 			internal/har/har.go internal/streamfactory/factory.go

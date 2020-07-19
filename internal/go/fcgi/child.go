@@ -9,17 +9,20 @@ package fcgi
 // This file implements FastCGI from the perspective of a Child process.
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/http/cgi"
 	"strings"
 )
 
 // request holds the state for an in-progress request. As soon as it's complete,
 // it's converted to an http.Request.
 type request struct {
+	pw        *io.PipeWriter
 	reqId     uint16
 	params    map[string]string
 	buf       [1024]byte
@@ -68,12 +71,14 @@ func (r *request) parseParams() {
 }
 
 type Child struct {
-	requests map[uint16]*request // keyed by request ID
+	requests        map[uint16]*request // keyed by request ID
+	requestCallback func(*http.Request)
 }
 
-func NewChild() *Child {
+func NewChild(processRequest func(*http.Request)) *Child {
 	return &Child{
-		requests: make(map[uint16]*request),
+		requests:        make(map[uint16]*request),
+		requestCallback: processRequest,
 	}
 }
 
@@ -154,8 +159,27 @@ func (c *Child) handleRecord(rec *record) error {
 		fmt.Printf("Body:\n%s", content)
 		return nil
 	case typeStdin:
+		fmt.Println("Ping")
 		content := rec.content()
-		fmt.Printf("Body:\n%s", content)
+		if req.pw == nil {
+			var body io.ReadCloser
+			if len(content) > 0 {
+				// body could be an io.LimitReader, but it shouldn't matter
+				// as long as both sides are behaving.
+				body, req.pw = io.Pipe()
+			} else {
+				body = emptyBody
+			}
+			fmt.Println("Ping")
+			go c.serveRequest(req, body)
+		}
+		if len(content) > 0 {
+			// TODO(eds): This blocks until the handler reads from the pipe.
+			// If the handler takes a long time, it might be a problem.
+			req.pw.Write(content)
+		} else if req.pw != nil {
+			req.pw.Close()
+		}
 		return nil
 	case typeGetValues:
 		// probably don't do anything here.  looks like something supposed to
@@ -174,6 +198,22 @@ func (c *Child) handleRecord(rec *record) error {
 		// FIXME: perhaps log for now?
 		return nil
 	}
+}
+
+func (c *Child) serveRequest(req *request, body io.ReadCloser) {
+	// content := rec.content()
+	// fmt.Printf("Body:\n%s", content)
+	// FIXME: move to a go routine to construct the request and pass on
+	httpReq, err := cgi.RequestFromMap(req.params)
+	if err != nil {
+		return
+	}
+	// io.ReadCloser
+	//httpReq.Body = // set this to be a reader
+	withoutUsedEnvVars := filterOutUsedEnvVars(req.params)
+	envVarCtx := context.WithValue(httpReq.Context(), envVarsContextKey{}, withoutUsedEnvVars)
+	httpReq = httpReq.WithContext(envVarCtx)
+	c.requestCallback(httpReq)
 }
 
 // filterOutUsedEnvVars returns a new map of env vars without the
