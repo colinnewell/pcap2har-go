@@ -61,13 +61,23 @@ func TestSavePointReader(t *testing.T) {
 	}
 
 	sp.Restore(false)
+	rest, err := ioutil.ReadAll(sp)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if diff := cmp.Diff(rest, []byte("do lots")); diff != "" {
+		t.Errorf("Final read after restore\n%s", diff)
+	}
+
+	sp.Restore(false)
 	sp.Read(buf[:])
 
 	if !cmp.Equal(buf[:], []byte("do l")) {
 		t.Errorf("Next read failed")
 	}
 
-	rest, err := ioutil.ReadAll(sp)
+	rest, err = ioutil.ReadAll(sp)
 	if err != nil {
 		t.Error(err)
 	}

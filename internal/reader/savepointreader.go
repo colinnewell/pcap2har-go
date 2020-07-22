@@ -64,5 +64,5 @@ func (sp *SavePointReader) Restore(discardSavePoint bool) {
 		sp.setupSavePointReader()
 		rdr = sp.currentReader
 	}
-	sp.currentReader = io.MultiReader(&sp.alt, rdr)
+	sp.currentReader = io.MultiReader(bytes.NewBuffer(sp.alt.Bytes()), rdr)
 }
