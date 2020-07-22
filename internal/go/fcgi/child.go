@@ -11,12 +11,12 @@ package fcgi
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/cgi"
 	"strings"
+	"sync"
 )
 
 // request holds the state for an in-progress request. As soon as it's complete,
@@ -73,6 +73,7 @@ func (r *request) parseParams() {
 type Child struct {
 	requests        map[uint16]*request // keyed by request ID
 	requestCallback func(*http.Request)
+	wg              sync.WaitGroup
 }
 
 func NewChild(processRequest func(*http.Request)) *Child {
@@ -82,15 +83,27 @@ func NewChild(processRequest func(*http.Request)) *Child {
 	}
 }
 
-func (c *Child) ReadRequest(rdr io.Reader) {
+func (c *Child) ReadRequest(rdr io.Reader) error {
 	var rec record
+	defer c.cleanUp()
+	defer c.wg.Wait()
 	for {
 		if err := rec.read(rdr); err != nil {
-			return
+			return err
 		}
-		fmt.Printf("%#v\n", rec.h)
 		if err := c.handleRecord(&rec); err != nil {
-			return
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *Child) cleanUp() {
+	for _, req := range c.requests {
+		if req.pw != nil {
+			// race with call to Close in c.serveRequest doesn't matter because
+			// Pipe(Reader|Writer).Close are idempotent
+			req.pw.CloseWithError(ErrConnClosed)
 		}
 	}
 }
@@ -147,19 +160,17 @@ func (c *Child) handleRecord(rec *record) error {
 			return nil
 		}
 		req.parseParams()
-		fmt.Printf("%#v\n", req.params)
 		return nil
 	// FIXME: also add in the things for responses
 	case typeStderr:
-		content := rec.content()
-		fmt.Printf("Errors:\n%s", content)
+		//content := rec.content()
+		//fmt.Printf("Errors:\n%s", content)
 		return nil
 	case typeStdout:
-		content := rec.content()
-		fmt.Printf("Body:\n%s", content)
+		//content := rec.content()
+		//fmt.Printf("Body:\n%s", content)
 		return nil
 	case typeStdin:
-		fmt.Println("Ping")
 		content := rec.content()
 		if req.pw == nil {
 			var body io.ReadCloser
@@ -170,7 +181,7 @@ func (c *Child) handleRecord(rec *record) error {
 			} else {
 				body = emptyBody
 			}
-			fmt.Println("Ping")
+			c.wg.Add(1)
 			go c.serveRequest(req, body)
 		}
 		if len(content) > 0 {
@@ -202,18 +213,17 @@ func (c *Child) handleRecord(rec *record) error {
 
 func (c *Child) serveRequest(req *request, body io.ReadCloser) {
 	// content := rec.content()
-	// fmt.Printf("Body:\n%s", content)
 	// FIXME: move to a go routine to construct the request and pass on
 	httpReq, err := cgi.RequestFromMap(req.params)
 	if err != nil {
 		return
 	}
-	// io.ReadCloser
-	//httpReq.Body = // set this to be a reader
+	httpReq.Body = body
 	withoutUsedEnvVars := filterOutUsedEnvVars(req.params)
 	envVarCtx := context.WithValue(httpReq.Context(), envVarsContextKey{}, withoutUsedEnvVars)
 	httpReq = httpReq.WithContext(envVarCtx)
 	c.requestCallback(httpReq)
+	c.wg.Done()
 }
 
 // filterOutUsedEnvVars returns a new map of env vars without the

@@ -55,17 +55,25 @@ func (h *HTTPConversationReaders) ReadStream(r ReaderStream, a, b gopacket.Flow)
 	spr := NewSavePointReader(t)
 	for {
 		err := h.ReadHTTPRequest(spr, t, a, b)
+		// FIXME: can we restructure this to be a list of things to try?
 		if err == io.EOF {
 			return
 		} else if err != nil {
-			spr.Restore(true)
+			spr.Restore(false)
 			err := h.ReadHTTPResponse(spr, t, a, b)
 			if err == io.EOF {
 				return
 			} else if err != nil {
-				// we don't understand this stream, let's just dump it
-				tcpreader.DiscardBytesToEOF(spr)
-				return
+				spr.Restore(true)
+				// lets see if we have a FCGI request
+				err := h.ReadFCGIRequest(spr, t, a, b)
+				if err == io.EOF {
+					return
+				} else if err != nil {
+					// we don't understand this stream, let's just dump it
+					tcpreader.DiscardBytesToEOF(spr)
+					return
+				}
 			}
 		}
 		t.Reset()

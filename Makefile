@@ -3,8 +3,8 @@ all: pcap2har fcgi
 fcgi: cmd/fcgi/main.go internal/go/fcgi/*.go
 	go build -o fcgi cmd/fcgi/main.go
 
-pcap2har: cmd/pcap2har/main.go go.mod go.sum internal/reader/reader.go \
-			internal/har/har.go internal/streamfactory/factory.go
+pcap2har: cmd/pcap2har/main.go go.mod go.sum internal/reader/*.go \
+			internal/har/*.go internal/streamfactory/*.go internal/go/fcgi/*
 	go build -o pcap2har cmd/pcap2har/main.go
 
 test: .force e2e-test

@@ -22,7 +22,6 @@ func main() {
 			log.Fatal(err)
 		}
 		c := fcgi.NewChild(func(req *http.Request) {
-			fmt.Println("Ping")
 			r, err := httputil.DumpRequest(req, true)
 			if err != nil {
 				fmt.Println(err)
