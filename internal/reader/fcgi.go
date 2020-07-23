@@ -15,6 +15,8 @@ func (h *HTTPConversationReaders) ReadFCGIRequest(spr *SavePointReader, t *TimeC
 		defer req.Body.Close()
 		body, _ := ioutil.ReadAll(req.Body)
 		h.addRequest(a, b, req, body, t.Seen())
+	}, func(resp *http.Response, body []byte) {
+		h.addResponse(a, b, resp, body, t.Seen())
 	})
 	return c.ReadRequest(spr)
 }

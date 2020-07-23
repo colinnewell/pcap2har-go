@@ -28,6 +28,14 @@ func main() {
 			} else {
 				fmt.Println(string(r))
 			}
+		}, func(resp *http.Response, body []byte) {
+			r, err := httputil.DumpResponse(resp, false)
+			if err != nil {
+				fmt.Println(err)
+			} else {
+				fmt.Println(string(r))
+				fmt.Println(string(body))
+			}
 		})
 		c.ReadRequest(r)
 		// now grab the data

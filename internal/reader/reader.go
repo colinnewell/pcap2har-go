@@ -101,20 +101,7 @@ func (h *HTTPConversationReaders) ReadHTTPResponse(spr *SavePointReader, t *Time
 			tcpreader.DiscardBytesToEOF(buf)
 		}
 	}
-	address := ConversationAddress{IP: a.Reverse(), Port: b.Reverse()}
-	conversations := h.conversations[address]
-	for n := 0; n < len(conversations); n++ {
-		c := conversations[n]
-		if conversations[n].Response == nil {
-			c.Response = res
-			c.ResponseBody = body
-			c.ResponseSeen = t.Seen()
-			h.conversations[address][n] = c
-			break
-		}
-		// FIXME: should think about what we do when we don't find
-		// the other side of the conversation.
-	}
+	h.addResponse(a, b, res, body, t.Seen())
 	return err
 }
 
@@ -153,4 +140,21 @@ func (h *HTTPConversationReaders) addRequest(a, b gopacket.Flow, req *http.Reque
 		RequestBody: body,
 		RequestSeen: seen,
 	})
+}
+
+func (h *HTTPConversationReaders) addResponse(a, b gopacket.Flow, res *http.Response, body []byte, seen []time.Time) {
+	address := ConversationAddress{IP: a.Reverse(), Port: b.Reverse()}
+	conversations := h.conversations[address]
+	for n := 0; n < len(conversations); n++ {
+		c := conversations[n]
+		if conversations[n].Response == nil {
+			c.Response = res
+			c.ResponseBody = body
+			c.ResponseSeen = seen
+			h.conversations[address][n] = c
+			break
+		}
+		// FIXME: should think about what we do when we don't find
+		// the other side of the conversation.
+	}
 }

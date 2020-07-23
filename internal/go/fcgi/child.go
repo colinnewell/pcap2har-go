@@ -9,8 +9,10 @@ package fcgi
 // This file implements FastCGI from the perspective of a Child process.
 
 import (
+	"bufio"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -71,15 +73,17 @@ func (r *request) parseParams() {
 }
 
 type Child struct {
-	requests        map[uint16]*request // keyed by request ID
-	requestCallback func(*http.Request)
-	wg              sync.WaitGroup
+	requests         map[uint16]*request // keyed by request ID
+	requestCallback  func(*http.Request)
+	responseCallback func(*http.Response, []byte)
+	wg               sync.WaitGroup
 }
 
-func NewChild(processRequest func(*http.Request)) *Child {
+func NewChild(processRequest func(*http.Request), processResponse func(*http.Response, []byte)) *Child {
 	return &Child{
-		requests:        make(map[uint16]*request),
-		requestCallback: processRequest,
+		requests:         make(map[uint16]*request),
+		requestCallback:  processRequest,
+		responseCallback: processResponse,
 	}
 }
 
@@ -91,6 +95,7 @@ func (c *Child) ReadRequest(rdr io.Reader) error {
 		if err := rec.read(rdr); err != nil {
 			return err
 		}
+		fmt.Printf("%#v\n", rec.h)
 		if err := c.handleRecord(&rec); err != nil {
 			return err
 		}
@@ -167,8 +172,30 @@ func (c *Child) handleRecord(rec *record) error {
 		//fmt.Printf("Errors:\n%s", content)
 		return nil
 	case typeStdout:
-		//content := rec.content()
-		//fmt.Printf("Body:\n%s", content)
+		if req, ok = c.requests[rec.h.Id]; !ok {
+			req = newRequest(rec.h.Id, 0)
+			c.requests[rec.h.Id] = req
+		}
+		content := rec.content()
+		if req.pw == nil {
+			var body io.ReadCloser
+			if len(content) > 0 {
+				// body could be an io.LimitReader, but it shouldn't matter
+				// as long as both sides are behaving.
+				body, req.pw = io.Pipe()
+			} else {
+				body = emptyBody
+			}
+			c.wg.Add(1)
+			go c.serveResponse(req, body)
+		}
+		if len(content) > 0 {
+			// TODO(eds): This blocks until the handler reads from the pipe.
+			// If the handler takes a long time, it might be a problem.
+			req.pw.Write(content)
+		} else if req.pw != nil {
+			req.pw.Close()
+		}
 		return nil
 	case typeStdin:
 		content := rec.content()
@@ -212,8 +239,20 @@ func (c *Child) handleRecord(rec *record) error {
 }
 
 func (c *Child) serveRequest(req *request, body io.ReadCloser) {
-	// content := rec.content()
-	// FIXME: move to a go routine to construct the request and pass on
+	// FIXME: it would be nice to pass more meta data through the request too
+	buf := bufio.NewReader(body)
+	res, err := http.ReadResponse(buf, nil)
+	if err != nil {
+		return
+	}
+	defer res.Body.Close()
+	// FIXME: consider a savepoint reader to have another crack at the body?
+	respBody, _ := ioutil.ReadAll(res.Body)
+	c.responseCallback(res, respBody)
+	c.wg.Done()
+}
+
+func (c *Child) serveResponse(req *request, body io.ReadCloser) {
 	httpReq, err := cgi.RequestFromMap(req.params)
 	if err != nil {
 		return
