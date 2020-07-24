@@ -172,12 +172,24 @@ func (h *Har) AddEntry(v reader.Conversation) {
 				headers = append(headers, Header{Name: k, Value: v})
 			}
 		}
+		cookies := v.Response.Cookies()
+		cookieInfo := make([]Cookie, len(cookies))
+		for i, c := range cookies {
+			cookieInfo[i] = Cookie{
+				Name:     c.Name,
+				Value:    c.Value,
+				Expires:  c.Expires,
+				HTTPOnly: c.HttpOnly,
+				Secure:   c.Secure,
+			}
+		}
 		resp = ResponseInfo{
 			Content: ContentInfo{
 				Size:     len(v.ResponseBody),
 				MimeType: mimeType,
 				Text:     string(v.ResponseBody),
 			},
+			Cookies:     cookieInfo,
 			Headers:     headers,
 			HTTPVersion: v.Response.Proto,
 			StatusText:  v.Response.Status,

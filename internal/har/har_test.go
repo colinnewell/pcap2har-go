@@ -266,7 +266,7 @@ func TestHarFullConversation(t *testing.T) {
 		`          "statusText": "200 OK",`,
 		`          "httpVersion": "HTTP/1.0",`,
 		`          "headers": null,`,
-		`          "cookies": null,`,
+		`          "cookies": [],`,
 		`          "content": {`,
 		`            "mimeType": "",`,
 		`            "size": 13,`,
