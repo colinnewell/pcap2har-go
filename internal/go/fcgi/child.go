@@ -92,8 +92,11 @@ func NewChild(processRequest func(*http.Request), processResponse func(*http.Res
 
 func (c *Child) ReadRequest(rdr io.Reader) error {
 	var rec record
-	defer c.wg.Wait()
-	defer c.cleanUp()
+	defer func() {
+		// FIXME: figure out what order I should be implemneting these in
+		c.wg.Wait()
+		c.cleanUp()
+	}()
 	for {
 		if err := rec.read(rdr); err != nil {
 			return err
