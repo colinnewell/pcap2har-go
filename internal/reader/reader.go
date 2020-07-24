@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/google/gopacket"
@@ -13,6 +14,7 @@ import (
 )
 
 type HTTPConversationReaders struct {
+	mu            sync.Mutex
 	conversations map[ConversationAddress][]Conversation
 }
 
@@ -134,6 +136,19 @@ func (h *HTTPConversationReaders) ReadHTTPRequest(spr *SavePointReader, t *TimeC
 
 func (h *HTTPConversationReaders) addRequest(a, b gopacket.Flow, req *http.Request, body []byte, seen []time.Time) {
 	address := ConversationAddress{IP: a, Port: b}
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	conversations := h.conversations[address]
+	for n := 0; n < len(conversations); n++ {
+		c := conversations[n]
+		if conversations[n].Request == nil {
+			c.Request = req
+			c.RequestBody = body
+			c.RequestSeen = seen
+			h.conversations[address][n] = c
+			return
+		}
+	}
 	h.conversations[address] = append(h.conversations[address], Conversation{
 		Address:     address,
 		Request:     req,
@@ -144,7 +159,18 @@ func (h *HTTPConversationReaders) addRequest(a, b gopacket.Flow, req *http.Reque
 
 func (h *HTTPConversationReaders) addResponse(a, b gopacket.Flow, res *http.Response, body []byte, seen []time.Time) {
 	address := ConversationAddress{IP: a.Reverse(), Port: b.Reverse()}
+	h.mu.Lock()
+	defer h.mu.Unlock()
 	conversations := h.conversations[address]
+	if conversations == nil {
+		h.conversations[address] = append(h.conversations[address], Conversation{
+			Address:      address,
+			Response:     res,
+			ResponseBody: body,
+			ResponseSeen: seen,
+		})
+		return
+	}
 	for n := 0; n < len(conversations); n++ {
 		c := conversations[n]
 		if conversations[n].Response == nil {

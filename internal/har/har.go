@@ -98,6 +98,9 @@ type Har struct {
 // AddEntry extracts info from HTTP conversations and turns them into a Har Entry.
 func (h *Har) AddEntry(v reader.Conversation) {
 	var reqheaders []Header
+	if v.Request == nil {
+		return
+	}
 	for k, values := range v.Request.Header {
 		for _, v := range values {
 			reqheaders = append(reqheaders, Header{Name: k, Value: v})

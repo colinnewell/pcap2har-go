@@ -76,6 +76,7 @@ func (r *request) parseParams() {
 }
 
 type Child struct {
+	// FIXME: should I add the sync.Mutex back in to protect the map?
 	requests         map[uint16]*request // keyed by request ID
 	requestCallback  func(*http.Request)
 	responseCallback func(*http.Response, []byte)
