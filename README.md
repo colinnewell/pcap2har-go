@@ -69,8 +69,10 @@ It has various limitations.
   received.
 * Data not understood or missing is likely to be silently dropped with no
   indication that it was missed.
-* FastCGI implementation is very simple and crude and seems to glitch a lot
-  currently.  Need to figure out the reasons for that.
+* FastCGI implementation is very simple and crude and complex.  It's a hack job
+  of the existing go library fcgi code shoe horned into this code base in an
+  ugly way and lightly tested.  It ought to be possible to expose more of the
+  cool stuff from the fastcgi stream like errors.
 
 I have replicated some of the existing tcp reader code to give access to the
 timing information I have extracted.  It might be good to contribute this back
