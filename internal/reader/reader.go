@@ -80,7 +80,7 @@ func (h *HTTPConversationReaders) ReadStream(r ReaderStream, a, b gopacket.Flow)
 	}
 }
 
-// ReadHTTPResponse try to read the stream as an HTTP response
+// ReadHTTPResponse try to read the stream as an HTTP response.
 func (h *HTTPConversationReaders) ReadHTTPResponse(spr *SavePointReader, t *TimeCaptureReader, a, b gopacket.Flow) error {
 	buf := bufio.NewReader(spr)
 
@@ -105,7 +105,7 @@ func (h *HTTPConversationReaders) ReadHTTPResponse(spr *SavePointReader, t *Time
 	return err
 }
 
-// ReadHTTPRequest try to read the stream as an HTTP request
+// ReadHTTPRequest try to read the stream as an HTTP request.
 func (h *HTTPConversationReaders) ReadHTTPRequest(spr *SavePointReader, t *TimeCaptureReader, a, b gopacket.Flow) error {
 	spr.SavePoint()
 	buf := bufio.NewReader(spr)

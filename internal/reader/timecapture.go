@@ -12,7 +12,6 @@ func NewTimeCaptureReader(r ReaderStream) *TimeCaptureReader {
 }
 
 func (t *TimeCaptureReader) Read(p []byte) (read int, err error) {
-
 	read, err = t.r.Read(p)
 	if err == nil {
 		time, err := t.r.Seen()

@@ -92,8 +92,8 @@ func NewChild(processRequest func(*http.Request), processResponse func(*http.Res
 
 func (c *Child) ReadRequest(rdr io.Reader) error {
 	var rec record
-	defer c.cleanUp()
 	defer c.wg.Wait()
+	defer c.cleanUp()
 	for {
 		if err := rec.read(rdr); err != nil {
 			return err
@@ -114,8 +114,6 @@ func (c *Child) cleanUp() {
 		}
 	}
 }
-
-var errCloseConn = errors.New("fcgi: connection should be closed")
 
 var emptyBody = ioutil.NopCloser(strings.NewReader(""))
 
@@ -203,9 +201,15 @@ func (c *Child) handleRecord(rec *record) error {
 				if len(matches) > 0 {
 					status = string(matches[1])
 				}
-				req.pw.Write([]byte(fmt.Sprintf("HTTP/1.0 %s\r\n", status)))
+				_, err := req.pw.Write([]byte(fmt.Sprintf("HTTP/1.0 %s\r\n", status)))
+				if err != nil {
+					return err
+				}
 			}
-			req.pw.Write(content)
+			_, err := req.pw.Write(content)
+			if err != nil {
+				return err
+			}
 		} else if req.pw != nil {
 			req.pw.Close()
 		}
@@ -241,6 +245,7 @@ func (c *Child) handleRecord(rec *record) error {
 		if req.pw != nil {
 			req.pw.Close()
 		}
+		delete(c.requests, rec.h.Id)
 		return nil
 	case typeData:
 		// If the filter role is implemented, read the data stream here.
@@ -258,19 +263,20 @@ func (c *Child) handleRecord(rec *record) error {
 
 func (c *Child) serveResponse(req *request, body io.ReadCloser) {
 	// FIXME: it would be nice to pass more meta data through the request too
+	defer c.wg.Done()
 	buf := bufio.NewReader(body)
 	res, err := http.ReadResponse(buf, nil)
 	if err != nil {
 		return
 	}
-	defer body.Close()
+	defer res.Body.Close()
 	// FIXME: consider a savepoint reader to have another crack at the body?
-	respBody, _ := ioutil.ReadAll(body)
+	respBody, _ := ioutil.ReadAll(res.Body)
 	c.responseCallback(res, respBody)
-	c.wg.Done()
 }
 
 func (c *Child) serveRequest(req *request, body io.ReadCloser) {
+	defer c.wg.Done()
 	httpReq, err := cgi.RequestFromMap(req.params)
 	if err != nil {
 		return
@@ -280,7 +286,6 @@ func (c *Child) serveRequest(req *request, body io.ReadCloser) {
 	envVarCtx := context.WithValue(httpReq.Context(), envVarsContextKey{}, withoutUsedEnvVars)
 	httpReq = httpReq.WithContext(envVarCtx)
 	c.requestCallback(httpReq)
-	c.wg.Done()
 }
 
 // filterOutUsedEnvVars returns a new map of env vars without the

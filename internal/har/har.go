@@ -192,7 +192,7 @@ func (h *Har) AddEntry(v reader.Conversation) {
 }
 
 // FinaliseAndSort sort the requests by time and fill in the summary structures
-// (pages)
+// (pages).
 func (h *Har) FinaliseAndSort() {
 	entries := h.Log.Entries
 	sort.Slice(entries, func(i, j int) bool {

@@ -53,13 +53,6 @@ const (
 	roleFilter
 )
 
-const (
-	statusRequestComplete = iota
-	statusCantMultiplex
-	statusOverloaded
-	statusUnknownRole
-)
-
 type header struct {
 	Version       uint8
 	Type          recType
@@ -83,10 +76,6 @@ func (br *beginRequest) read(content []byte) error {
 	br.flags = content[2]
 	return nil
 }
-
-// for padding so we don't have to allocate all the time
-// not synchronized because we don't care what the contents are
-var pad [maxPad]byte
 
 func (h *header) init(recType recType, reqId uint16, contentLength int) {
 	h.Version = 1
@@ -140,14 +129,4 @@ func readString(s []byte, size uint32) string {
 		return ""
 	}
 	return string(s[:size])
-}
-
-func encodeSize(b []byte, size uint32) int {
-	if size > 127 {
-		size |= 1 << 31
-		binary.BigEndian.PutUint32(b, size)
-		return 4
-	}
-	b[0] = byte(size)
-	return 1
 }
