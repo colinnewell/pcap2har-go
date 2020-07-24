@@ -12,7 +12,6 @@ import (
 	"bufio"
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -95,7 +94,6 @@ func (c *Child) ReadRequest(rdr io.Reader) error {
 		if err := rec.read(rdr); err != nil {
 			return err
 		}
-		fmt.Printf("%#v\n", rec.h)
 		if err := c.handleRecord(&rec); err != nil {
 			return err
 		}
@@ -192,6 +190,9 @@ func (c *Child) handleRecord(rec *record) error {
 		if len(content) > 0 {
 			// TODO(eds): This blocks until the handler reads from the pipe.
 			// If the handler takes a long time, it might be a problem.
+			// FIXME: fudging a 200, need to find out how FCGI really handles this.
+			// should read Status header out
+			req.pw.Write([]byte("HTTP/1.0 200 OK\r\n"))
 			req.pw.Write(content)
 		} else if req.pw != nil {
 			req.pw.Close()
@@ -224,6 +225,11 @@ func (c *Child) handleRecord(rec *record) error {
 		// illicit a response from the server which we might be interested in,
 		// but not the fact that it was requested.
 		return nil
+	case typeEndRequest:
+		if req.pw != nil {
+			req.pw.Close()
+		}
+		return nil
 	case typeData:
 		// If the filter role is implemented, read the data stream here.
 		// FIXME:
@@ -238,21 +244,21 @@ func (c *Child) handleRecord(rec *record) error {
 	}
 }
 
-func (c *Child) serveRequest(req *request, body io.ReadCloser) {
+func (c *Child) serveResponse(req *request, body io.ReadCloser) {
 	// FIXME: it would be nice to pass more meta data through the request too
 	buf := bufio.NewReader(body)
 	res, err := http.ReadResponse(buf, nil)
 	if err != nil {
 		return
 	}
-	defer res.Body.Close()
+	defer body.Close()
 	// FIXME: consider a savepoint reader to have another crack at the body?
-	respBody, _ := ioutil.ReadAll(res.Body)
+	respBody, _ := ioutil.ReadAll(body)
 	c.responseCallback(res, respBody)
 	c.wg.Done()
 }
 
-func (c *Child) serveResponse(req *request, body io.ReadCloser) {
+func (c *Child) serveRequest(req *request, body io.ReadCloser) {
 	httpReq, err := cgi.RequestFromMap(req.params)
 	if err != nil {
 		return
