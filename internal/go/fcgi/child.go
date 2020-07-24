@@ -12,10 +12,12 @@ import (
 	"bufio"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/cgi"
+	"regexp"
 	"strings"
 	"sync"
 )
@@ -34,6 +36,8 @@ type request struct {
 // envVarsContextKey uniquely identifies a mapping of CGI
 // environment variables to their values in a request context
 type envVarsContextKey struct{}
+
+var httpStatus = regexp.MustCompile(`(?m)^Status:\s*(.*)\s*$`)
 
 func newRequest(reqId uint16, flags uint8) *request {
 	r := &request{
@@ -190,9 +194,17 @@ func (c *Child) handleRecord(rec *record) error {
 		if len(content) > 0 {
 			// TODO(eds): This blocks until the handler reads from the pipe.
 			// If the handler takes a long time, it might be a problem.
-			// FIXME: fudging a 200, need to find out how FCGI really handles this.
-			// should read Status header out
-			req.pw.Write([]byte("HTTP/1.0 200 OK\r\n"))
+			if !ok {
+				// assume this is the first chunk and so we need to fake out a
+				// standard HTTP header.
+				// grab Status: header if present
+				matches := httpStatus.FindSubmatch(content)
+				status := "200 OK"
+				if len(matches) > 0 {
+					status = string(matches[1])
+				}
+				req.pw.Write([]byte(fmt.Sprintf("HTTP/1.0 %s\r\n", status)))
+			}
 			req.pw.Write(content)
 		} else if req.pw != nil {
 			req.pw.Close()
