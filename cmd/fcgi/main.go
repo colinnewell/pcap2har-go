@@ -37,7 +37,9 @@ func main() {
 				fmt.Println(string(body))
 			}
 		})
-		c.ReadRequest(r)
-		// now grab the data
+
+		if err := c.ReadRequest(r); err != nil {
+			log.Fatal(err)
+		}
 	}
 }

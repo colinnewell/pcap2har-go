@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/http/cgi"
 	"regexp"
@@ -106,7 +107,6 @@ func (c *Child) ReadRequest(rdr io.Reader) error {
 			return err
 		}
 	}
-	return nil
 }
 
 func (c *Child) cleanUp() {
@@ -114,16 +114,15 @@ func (c *Child) cleanUp() {
 		if req.pw != nil {
 			// race with call to Close in c.serveRequest doesn't matter because
 			// Pipe(Reader|Writer).Close are idempotent
-			req.pw.CloseWithError(ErrConnClosed)
+			err := req.pw.CloseWithError(ErrConnClosed)
+			if err != nil {
+				log.Println("cleanUp(): ", err)
+			}
 		}
 	}
 }
 
 var emptyBody = ioutil.NopCloser(strings.NewReader(""))
-
-// ErrRequestAborted is returned by Read when a handler attempts to read the
-// body of a request that has been aborted by the web server.
-var ErrRequestAborted = errors.New("fcgi: request aborted by web server")
 
 // ErrConnClosed is returned by Read when a handler attempts to read the body of
 // a request after the connection to the web server has been closed.
@@ -194,12 +193,9 @@ func (c *Child) handleRecord(rec *record) error {
 			go c.serveResponse(req, body)
 		}
 		if len(content) > 0 {
-			// TODO(eds): This blocks until the handler reads from the pipe.
-			// If the handler takes a long time, it might be a problem.
 			if !ok {
-				// assume this is the first chunk and so we need to fake out a
-				// standard HTTP header.
-				// grab Status: header if present
+				// assume this is the first block, check if there is a status
+				// header indicating this isn't a standard 200 OK.
 				matches := httpStatus.FindSubmatch(content)
 				status := "200 OK"
 				if len(matches) > 0 {
@@ -215,7 +211,10 @@ func (c *Child) handleRecord(rec *record) error {
 				return err
 			}
 		} else if req.pw != nil {
-			req.pw.Close()
+			err := req.pw.Close()
+			if err != nil {
+				return err
+			}
 		}
 		return nil
 	case typeStdin:
@@ -235,9 +234,15 @@ func (c *Child) handleRecord(rec *record) error {
 		if len(content) > 0 {
 			// TODO(eds): This blocks until the handler reads from the pipe.
 			// If the handler takes a long time, it might be a problem.
-			req.pw.Write(content)
+			_, err := req.pw.Write(content)
+			if err != nil {
+				return err
+			}
 		} else if req.pw != nil {
-			req.pw.Close()
+			err := req.pw.Close()
+			if err != nil {
+				return err
+			}
 		}
 		return nil
 	case typeGetValues:
