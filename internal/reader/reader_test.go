@@ -26,7 +26,13 @@ func newReader(data []string) *fakeReader {
 	for i := range data {
 		readers[i] = strings.NewReader(data[i])
 	}
-	return &fakeReader{data: readers, pos: 0}
+	pos := 0
+	if len(data) == 0 {
+		// special case if we have no data
+		// so we return EOF
+		pos = 1
+	}
+	return &fakeReader{data: readers, pos: pos}
 }
 
 func (f fakeReader) Read(p []byte) (n int, err error) {
