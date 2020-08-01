@@ -51,7 +51,7 @@ type ReaderStream interface {
 	Seen() (time.Time, error)
 }
 
-type StreamInterpreter func(*SavePointReader, *TimeCaptureReader, gopacket.Flow, gopacket.Flow) error
+type streamDecoder func(*SavePointReader, *TimeCaptureReader, gopacket.Flow, gopacket.Flow) error
 
 func drain(spr *SavePointReader, _ *TimeCaptureReader, _, _ gopacket.Flow) error {
 	tcpreader.DiscardBytesToEOF(spr)
@@ -63,7 +63,7 @@ func (h *HTTPConversationReaders) ReadStream(r ReaderStream, a, b gopacket.Flow)
 	t := NewTimeCaptureReader(r)
 	spr := NewSavePointReader(t)
 	for {
-		for _, decode := range []StreamInterpreter{
+		for _, decode := range []streamDecoder{
 			h.ReadHTTPRequest,
 			h.ReadHTTPResponse,
 			h.ReadFCGIRequest,
