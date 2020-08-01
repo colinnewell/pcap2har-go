@@ -51,31 +51,33 @@ type ReaderStream interface {
 	Seen() (time.Time, error)
 }
 
+type StreamInterpreter func(*SavePointReader, *TimeCaptureReader, gopacket.Flow, gopacket.Flow) error
+
+func drain(spr *SavePointReader, _ *TimeCaptureReader, _, _ gopacket.Flow) error {
+	tcpreader.DiscardBytesToEOF(spr)
+	return nil
+}
+
 // ReadStream tries to read tcp connections and extract HTTP conversations.
 func (h *HTTPConversationReaders) ReadStream(r ReaderStream, a, b gopacket.Flow) {
 	t := NewTimeCaptureReader(r)
 	spr := NewSavePointReader(t)
 	for {
-		err := h.ReadHTTPRequest(spr, t, a, b)
-		// FIXME: can we restructure this to be a list of things to try?
-		if err == io.EOF {
-			return
-		} else if err != nil {
-			spr.Restore(false)
-			err := h.ReadHTTPResponse(spr, t, a, b)
+		for _, decode := range []StreamInterpreter{
+			h.ReadHTTPRequest,
+			h.ReadHTTPResponse,
+			h.ReadFCGIRequest,
+			drain,
+		} {
+			err := decode(spr, t, a, b)
+			if err == nil {
+				break
+			}
 			if err == io.EOF {
 				return
 			} else if err != nil {
-				spr.Restore(true)
-				// lets see if we have a FCGI request
-				err := h.ReadFCGIRequest(spr, t, a, b)
-				if err == io.EOF {
-					return
-				} else if err != nil {
-					// we don't understand this stream, let's just dump it
-					tcpreader.DiscardBytesToEOF(spr)
-					return
-				}
+				// FIXME: if this is the last one, set to true
+				spr.Restore(false)
 			}
 		}
 		t.Reset()
