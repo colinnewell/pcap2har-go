@@ -29,6 +29,10 @@ type Conversation struct {
 	ResponseBody []byte
 	RequestSeen  []time.Time
 	ResponseSeen []time.Time
+	// FastCGI info if present
+	Errors    []string
+	ErrorCode int
+	FastCGI   bool
 }
 
 func New() HTTPConversationReaders {
@@ -62,13 +66,14 @@ func drain(spr *SavePointReader, _ *TimeCaptureReader, _, _ gopacket.Flow) error
 func (h *HTTPConversationReaders) ReadStream(r ReaderStream, a, b gopacket.Flow) {
 	t := NewTimeCaptureReader(r)
 	spr := NewSavePointReader(t)
+	decoders := []streamDecoder{
+		h.ReadHTTPRequest,
+		h.ReadHTTPResponse,
+		h.ReadFCGIRequest,
+		drain,
+	}
 	for {
-		for _, decode := range []streamDecoder{
-			h.ReadHTTPRequest,
-			h.ReadHTTPResponse,
-			h.ReadFCGIRequest,
-			drain,
-		} {
+		for i, decode := range decoders {
 			err := decode(spr, t, a, b)
 			if err == nil {
 				break
@@ -76,8 +81,11 @@ func (h *HTTPConversationReaders) ReadStream(r ReaderStream, a, b gopacket.Flow)
 			if err == io.EOF {
 				return
 			} else if err != nil {
-				// FIXME: if this is the last one, set to true
-				spr.Restore(false)
+				// don't need to restore before the last one
+				if i+1 < len(decoders) {
+					// can discard the save point on the final restore
+					spr.Restore(i < len(decoders))
+				}
 			}
 		}
 		t.Reset()
