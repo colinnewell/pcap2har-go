@@ -117,8 +117,8 @@ func TestHTTPStreamRead(t *testing.T) {
 			},
 			RequestBody:  []byte(""),
 			ResponseBody: []byte("{}"),
-			RequestSeen:  []time.Time{time.Time{}},
-			ResponseSeen: []time.Time{time.Time{}},
+			RequestSeen:  []time.Time{{}},
+			ResponseSeen: []time.Time{{}},
 		},
 		{
 			Address: reader.ConversationAddress{IP: ipFlow, Port: portFlow},
@@ -133,8 +133,8 @@ func TestHTTPStreamRead(t *testing.T) {
 				Body:       http.NoBody,
 				RequestURI: "/",
 			},
-			RequestSeen:  []time.Time{time.Time{}},
-			ResponseSeen: []time.Time{time.Time{}},
+			RequestSeen:  []time.Time{{}},
+			ResponseSeen: []time.Time{{}},
 			Response: &http.Response{
 				Status:     "200 OK",
 				StatusCode: 200,
