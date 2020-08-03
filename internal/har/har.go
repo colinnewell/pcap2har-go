@@ -26,6 +26,17 @@ type PageTiming struct {
 	OnLoad        float64 `json:"onLoad"`
 }
 
+type EntryTimings struct {
+	Blocked         int `json:"blocked"`
+	BlockedQueueing int `json:"_blocked_queueing"`
+	Connect         int `json:"connect"`
+	DNS             int `json:"dns"`
+	Receive         int `json:"receive"`
+	Send            int `json:"send"`
+	SSL             int `json:"ssl"`
+	Wait            int `json:"wait"`
+}
+
 type Header KeyValues
 
 type Cookie struct {
@@ -84,6 +95,7 @@ type Entry struct {
 	Response        ResponseInfo `json:"response"`
 	ServerIPAddress string       `json:"serverIPAddress"`
 	Connection      string       `json:"connection,omitempty"`
+	Timings         EntryTimings `json:"timings"`
 }
 
 type Har struct {
@@ -202,6 +214,7 @@ func (h *Har) AddEntry(v reader.Conversation) {
 		StartedDateTime: startTime,
 		Time:            duration.Nanoseconds(),
 		ServerIPAddress: v.Address.IP.Dst().String(),
+		Timings:         EntryTimings{-1, -1, -1, -1, -1, -1, -1, -1},
 	}
 	h.Log.Entries = append(h.Log.Entries, entry)
 }
