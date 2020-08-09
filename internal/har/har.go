@@ -2,6 +2,7 @@ package har
 
 import (
 	"fmt"
+	"net/http"
 	"sort"
 	"time"
 
@@ -123,17 +124,7 @@ func (h *Har) AddEntry(v reader.Conversation) {
 			Name: "Host", Value: v.Request.Host,
 		})
 	}
-	cookies := v.Request.Cookies()
-	cookieInfo := make([]Cookie, len(cookies))
-	for i, c := range cookies {
-		cookieInfo[i] = Cookie{
-			Name:     c.Name,
-			Value:    c.Value,
-			Expires:  c.Expires,
-			HTTPOnly: c.HttpOnly,
-			Secure:   c.Secure,
-		}
-	}
+	cookieInfo := extractCookies(v.Request.Cookies())
 	var queryString []KeyValues
 	for k, values := range v.Request.URL.Query() {
 		for _, v := range values {
@@ -184,17 +175,7 @@ func (h *Har) AddEntry(v reader.Conversation) {
 				headers = append(headers, Header{Name: k, Value: v})
 			}
 		}
-		cookies := v.Response.Cookies()
-		cookieInfo := make([]Cookie, len(cookies))
-		for i, c := range cookies {
-			cookieInfo[i] = Cookie{
-				Name:     c.Name,
-				Value:    c.Value,
-				Expires:  c.Expires,
-				HTTPOnly: c.HttpOnly,
-				Secure:   c.Secure,
-			}
-		}
+		cookieInfo := extractCookies(v.Response.Cookies())
 		resp = ResponseInfo{
 			Content: ContentInfo{
 				Size:     len(v.ResponseBody),
@@ -231,4 +212,18 @@ func (h *Har) FinaliseAndSort() {
 		id := fmt.Sprintf("page_%d", i+1)
 		h.Log.Pages = append(h.Log.Pages, Page{ID: id, Title: entry.Request.URL, StartedDateTime: entry.StartedDateTime, PageTimings: PageTiming{-1, -1}})
 	}
+}
+
+func extractCookies(cookies []*http.Cookie) []Cookie {
+	cookieInfo := make([]Cookie, len(cookies))
+	for i, c := range cookies {
+		cookieInfo[i] = Cookie{
+			Name:     c.Name,
+			Value:    c.Value,
+			Expires:  c.Expires,
+			HTTPOnly: c.HttpOnly,
+			Secure:   c.Secure,
+		}
+	}
+	return cookieInfo
 }
