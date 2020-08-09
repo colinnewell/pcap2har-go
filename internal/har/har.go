@@ -110,15 +110,10 @@ type Har struct {
 
 // AddEntry extracts info from HTTP conversations and turns them into a Har Entry.
 func (h *Har) AddEntry(v reader.Conversation) {
-	var reqheaders []Header
 	if v.Request == nil {
 		return
 	}
-	for k, values := range v.Request.Header {
-		for _, v := range values {
-			reqheaders = append(reqheaders, Header{Name: k, Value: v})
-		}
-	}
+	reqheaders := extractHeaders(v.Request.Header)
 	if v.Request.Host != "" {
 		reqheaders = append(reqheaders, Header{
 			Name: "Host", Value: v.Request.Host,
@@ -169,12 +164,7 @@ func (h *Har) AddEntry(v reader.Conversation) {
 		if ok {
 			mimeType = mimeTypes[0]
 		}
-		var headers []Header
-		for k, values := range v.Response.Header {
-			for _, v := range values {
-				headers = append(headers, Header{Name: k, Value: v})
-			}
-		}
+		headers := extractHeaders(v.Response.Header)
 		cookieInfo := extractCookies(v.Response.Cookies())
 		resp = ResponseInfo{
 			Content: ContentInfo{
@@ -226,4 +216,14 @@ func extractCookies(cookies []*http.Cookie) []Cookie {
 		}
 	}
 	return cookieInfo
+}
+
+func extractHeaders(header http.Header) []Header {
+	var headers []Header
+	for k, values := range header {
+		for _, v := range values {
+			headers = append(headers, Header{Name: k, Value: v})
+		}
+	}
+	return headers
 }
