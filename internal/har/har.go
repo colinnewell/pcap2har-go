@@ -113,44 +113,7 @@ func (h *Har) AddEntry(v reader.Conversation) {
 	if v.Request == nil {
 		return
 	}
-	reqheaders := extractHeaders(v.Request.Header)
-	if v.Request.Host != "" {
-		reqheaders = append(reqheaders, Header{
-			Name: "Host", Value: v.Request.Host,
-		})
-	}
-	cookieInfo := extractCookies(v.Request.Cookies())
-	var queryString []KeyValues
-	for k, values := range v.Request.URL.Query() {
-		for _, v := range values {
-			queryString = append(queryString, KeyValues{Name: k, Value: v})
-		}
-	}
-	var mimeType string
-	mimeTypes, ok := v.Request.Header["Content-Type"]
-	if ok {
-		mimeType = mimeTypes[0]
-	}
-	if v.Request.URL.Host == "" {
-		v.Request.URL.Host = v.Request.Host
-	}
-	if v.Request.TLS == nil {
-		v.Request.URL.Scheme = "http"
-	} else {
-		v.Request.URL.Scheme = "https"
-	}
-	req := RequestInfo{
-		Cookies:     cookieInfo,
-		Headers:     reqheaders,
-		Method:      v.Request.Method,
-		URL:         v.Request.URL.String(),
-		QueryString: queryString,
-		Content: ContentInfo{
-			Size:     len(v.RequestBody),
-			MimeType: mimeType,
-			Text:     string(v.RequestBody),
-		},
-	}
+	req := extractRequest(v)
 	startTime := v.RequestSeen[0]
 	var duration time.Duration
 	if len(v.ResponseSeen) > 0 {
@@ -160,7 +123,8 @@ func (h *Har) AddEntry(v reader.Conversation) {
 	}
 	resp := ResponseInfo{}
 	if v.Response != nil {
-		mimeTypes, ok = v.Response.Header["Content-Type"]
+		mimeTypes, ok := v.Response.Header["Content-Type"]
+		var mimeType string
 		if ok {
 			mimeType = mimeTypes[0]
 		}
@@ -226,4 +190,45 @@ func extractHeaders(header http.Header) []Header {
 		}
 	}
 	return headers
+}
+
+func extractRequest(v reader.Conversation) RequestInfo {
+	reqheaders := extractHeaders(v.Request.Header)
+	if v.Request.Host != "" {
+		reqheaders = append(reqheaders, Header{
+			Name: "Host", Value: v.Request.Host,
+		})
+	}
+	cookieInfo := extractCookies(v.Request.Cookies())
+	var queryString []KeyValues
+	for k, values := range v.Request.URL.Query() {
+		for _, v := range values {
+			queryString = append(queryString, KeyValues{Name: k, Value: v})
+		}
+	}
+	var mimeType string
+	mimeTypes, ok := v.Request.Header["Content-Type"]
+	if ok {
+		mimeType = mimeTypes[0]
+	}
+	if v.Request.URL.Host == "" {
+		v.Request.URL.Host = v.Request.Host
+	}
+	if v.Request.TLS == nil {
+		v.Request.URL.Scheme = "http"
+	} else {
+		v.Request.URL.Scheme = "https"
+	}
+	return RequestInfo{
+		Cookies:     cookieInfo,
+		Headers:     reqheaders,
+		Method:      v.Request.Method,
+		URL:         v.Request.URL.String(),
+		QueryString: queryString,
+		Content: ContentInfo{
+			Size:     len(v.RequestBody),
+			MimeType: mimeType,
+			Text:     string(v.RequestBody),
+		},
+	}
 }
