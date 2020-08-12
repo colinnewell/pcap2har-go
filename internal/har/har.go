@@ -164,7 +164,12 @@ func (h *Har) FinaliseAndSort() {
 
 	for i, entry := range entries {
 		id := fmt.Sprintf("page_%d", i+1)
-		h.Log.Pages = append(h.Log.Pages, Page{ID: id, Title: entry.Request.URL, StartedDateTime: entry.StartedDateTime, PageTimings: PageTiming{-1, -1}})
+		h.Log.Pages = append(h.Log.Pages, Page{
+			ID:              id,
+			Title:           entry.Request.URL,
+			StartedDateTime: entry.StartedDateTime,
+			PageTimings:     PageTiming{-1, -1},
+		})
 	}
 }
 
