@@ -1,9 +1,12 @@
 package har
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/colinnewell/pcap2har-go/internal/reader"
@@ -57,18 +60,26 @@ type RequestInfo struct {
 	Cookies     []Cookie    `json:"cookies"`
 	HeadersSize int         `json:"headersSize"`
 	BodySize    int         `json:"bodySize"`
-	Content     ContentInfo `json:"content"`
+	Content     ContentInfo `json:"postData,omitempty"`
 }
 
 type ContentInfo struct {
-	MimeType string `json:"mimeType"`
-	Size     int    `json:"size"`
-	Text     string `json:"text"`
+	MimeType string     `json:"mimeType"`
+	Size     int        `json:"size"`
+	Text     string     `json:"text"`
+	Params   []PostData `json:"params,omitempty"`
 }
 
 type KeyValues struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
+}
+
+type PostData struct {
+	Name        string `json:"name"`
+	Value       string `json:"value"`
+	FileName    string `json:"fileName,omitempty"`
+	ContentType string `json:"contentType,omitempty"`
 }
 
 type ResponseInfo struct {
@@ -216,6 +227,54 @@ func extractRequest(v reader.Conversation) RequestInfo {
 	if ok {
 		mimeType = mimeTypes[0]
 	}
+	var params []PostData
+	processedMimeType := mimeType
+	if idx := strings.Index(processedMimeType, ";"); idx >= 0 {
+		processedMimeType = processedMimeType[0:idx]
+	}
+	switch processedMimeType {
+	case "application/x-www-form-urlencoded":
+		v.Request.Body = ioutil.NopCloser(bytes.NewBuffer(v.RequestBody))
+		v.Request.ParseForm()
+		for k, values := range v.Request.PostForm {
+			for _, v := range values {
+				params = append(params, PostData{Name: k, Value: v})
+			}
+		}
+	case "multipart/form-data":
+		// MultipartReader
+		v.Request.Body = ioutil.NopCloser(bytes.NewBuffer(v.RequestBody))
+		err := v.Request.ParseMultipartForm(int64(len(v.RequestBody)))
+		if err == nil {
+			for k, values := range v.Request.PostForm {
+				for _, v := range values {
+					params = append(params, PostData{Name: k, Value: v})
+				}
+			}
+			for k, files := range v.Request.MultipartForm.File {
+				for _, f := range files {
+					file, err := f.Open()
+					var content []byte
+					if err == nil {
+						content, err = ioutil.ReadAll(file)
+					}
+					v := string(content)
+					mimeTypes, ok := f.Header["Content-Type"]
+					var partType string
+					if ok {
+						partType = mimeTypes[0]
+					}
+
+					params = append(params, PostData{
+						Name:        k,
+						Value:       v,
+						FileName:    f.Filename,
+						ContentType: partType,
+					})
+				}
+			}
+		}
+	}
 	if v.Request.URL.Host == "" {
 		v.Request.URL.Host = v.Request.Host
 	}
@@ -234,6 +293,7 @@ func extractRequest(v reader.Conversation) RequestInfo {
 			Size:     len(v.RequestBody),
 			MimeType: mimeType,
 			Text:     string(v.RequestBody),
+			Params:   params,
 		},
 	}
 }
