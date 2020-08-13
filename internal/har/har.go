@@ -244,14 +244,13 @@ func extractRequest(v reader.Conversation) RequestInfo {
 					params = append(params, KeyValues{Name: k, Value: v})
 				}
 			}
-			//for k, values := range v.Request.MultipartForm.Value {
+			// FIXME: probably need some sort of file struct.  Have a look
+			// at Chrome har to see if there's a decent json representation.
+			//for k, values := range v.Request.MultipartForm.File {
 			//	for _, v := range values {
 			//		params = append(params, KeyValues{Name: k, Value: v})
 			//	}
 			//}
-			// iterate through the Value and File maps.
-			//v.Request.MultipartForm
-			// grab params
 		}
 	}
 	if v.Request.URL.Host == "" {
