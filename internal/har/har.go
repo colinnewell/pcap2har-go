@@ -1,7 +1,9 @@
 package har
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"sort"
 	"time"
@@ -57,13 +59,14 @@ type RequestInfo struct {
 	Cookies     []Cookie    `json:"cookies"`
 	HeadersSize int         `json:"headersSize"`
 	BodySize    int         `json:"bodySize"`
-	Content     ContentInfo `json:"content"`
+	Content     ContentInfo `json:"postData,omitempty"`
 }
 
 type ContentInfo struct {
-	MimeType string `json:"mimeType"`
-	Size     int    `json:"size"`
-	Text     string `json:"text"`
+	MimeType string       `json:"mimeType"`
+	Size     int          `json:"size"`
+	Text     string       `json:"text"`
+	Params   *[]KeyValues `json:"params"`
 }
 
 type KeyValues struct {
@@ -216,6 +219,19 @@ func extractRequest(v reader.Conversation) RequestInfo {
 	if ok {
 		mimeType = mimeTypes[0]
 	}
+	var params []KeyValues
+	switch mimeType {
+	case "application/x-www-form-urlencoded":
+		v.Request.Body = ioutil.NopCloser(bytes.NewBuffer(v.RequestBody))
+		v.Request.ParseForm()
+		for k, values := range v.Request.PostForm {
+			for _, v := range values {
+				params = append(params, KeyValues{Name: k, Value: v})
+			}
+		}
+	case "multipart/form-data":
+		// MultipartReader
+	}
 	if v.Request.URL.Host == "" {
 		v.Request.URL.Host = v.Request.Host
 	}
@@ -224,7 +240,7 @@ func extractRequest(v reader.Conversation) RequestInfo {
 	} else {
 		v.Request.URL.Scheme = "https"
 	}
-	return RequestInfo{
+	r := RequestInfo{
 		Cookies:     cookieInfo,
 		Headers:     reqheaders,
 		Method:      v.Request.Method,
@@ -236,4 +252,8 @@ func extractRequest(v reader.Conversation) RequestInfo {
 			Text:     string(v.RequestBody),
 		},
 	}
+	if len(params) > 0 {
+		r.Content.Params = &params
+	}
+	return r
 }
