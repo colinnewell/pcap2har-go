@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/colinnewell/pcap2har-go/internal/reader"
@@ -220,7 +221,11 @@ func extractRequest(v reader.Conversation) RequestInfo {
 		mimeType = mimeTypes[0]
 	}
 	var params []KeyValues
-	switch mimeType {
+	processedMimeType := mimeType
+	if idx := strings.Index(processedMimeType, ";"); idx >= 0 {
+		processedMimeType = processedMimeType[0:idx]
+	}
+	switch processedMimeType {
 	case "application/x-www-form-urlencoded":
 		v.Request.Body = ioutil.NopCloser(bytes.NewBuffer(v.RequestBody))
 		v.Request.ParseForm()
@@ -231,6 +236,23 @@ func extractRequest(v reader.Conversation) RequestInfo {
 		}
 	case "multipart/form-data":
 		// MultipartReader
+		v.Request.Body = ioutil.NopCloser(bytes.NewBuffer(v.RequestBody))
+		err := v.Request.ParseMultipartForm(int64(len(v.RequestBody)))
+		if err == nil {
+			for k, values := range v.Request.PostForm {
+				for _, v := range values {
+					params = append(params, KeyValues{Name: k, Value: v})
+				}
+			}
+			//for k, values := range v.Request.MultipartForm.Value {
+			//	for _, v := range values {
+			//		params = append(params, KeyValues{Name: k, Value: v})
+			//	}
+			//}
+			// iterate through the Value and File maps.
+			//v.Request.MultipartForm
+			// grab params
+		}
 	}
 	if v.Request.URL.Host == "" {
 		v.Request.URL.Host = v.Request.Host
