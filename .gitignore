@@ -1,5 +1,4 @@
-pcap2har
-fcgi
+./pcap2har
 corpus/
 crashers/
 suppressions/
