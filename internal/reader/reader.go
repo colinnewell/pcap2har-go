@@ -104,7 +104,10 @@ func (h *HTTPConversationReaders) ReadHTTPResponse(spr *SavePointReader, t *Time
 	spr.SavePoint()
 	defer res.Body.Close()
 	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
+	// unexpected EOF reading trailer seems to indicate truncated stream when
+	// dealing with chunked encdoing.  If we fall back to not reading it, we
+	// still have the same basic output, just with all the chunking arterfacts.
+	if err != nil && err.Error() != "http: unexpected EOF reading trailer" {
 		spr.Restore(true)
 		buf = bufio.NewReader(spr)
 		body, err = ioutil.ReadAll(buf)
