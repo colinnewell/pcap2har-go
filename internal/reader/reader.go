@@ -31,9 +31,7 @@ type Conversation struct {
 	RequestSeen  []time.Time
 	ResponseSeen []time.Time
 	// FastCGI info if present
-	Errors    []string
-	ErrorCode int
-	FastCGI   bool
+	Errors []string
 }
 
 func New() HTTPConversationReaders {
@@ -185,26 +183,37 @@ func (h *HTTPConversationReaders) addRequest(a, b gopacket.Flow, req *http.Reque
 	})
 }
 
+func (h *HTTPConversationReaders) addErrorToResponse(a, b gopacket.Flow, errString string, seen []time.Time) {
+	h.updateResponse(a, b, func(c *Conversation) {
+		c.Errors = append(c.Errors, errString)
+	})
+}
+
 func (h *HTTPConversationReaders) addResponse(a, b gopacket.Flow, res *http.Response, body []byte, seen []time.Time) {
+	h.updateResponse(a, b, func(c *Conversation) {
+		c.Response = res
+		c.ResponseBody = body
+		c.ResponseSeen = seen
+	})
+}
+
+func (h *HTTPConversationReaders) updateResponse(a, b gopacket.Flow, update func(*Conversation)) {
 	address := ConversationAddress{IP: a.Reverse(), Port: b.Reverse()}
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	conversations := h.conversations[address]
 	if conversations == nil {
-		h.conversations[address] = append(h.conversations[address], Conversation{
-			Address:      address,
-			Response:     res,
-			ResponseBody: body,
-			ResponseSeen: seen,
-		})
+		c := Conversation{
+			Address: address,
+		}
+		update(&c)
+		h.conversations[address] = append(h.conversations[address], c)
 		return
 	}
 	for n := 0; n < len(conversations); n++ {
 		c := conversations[n]
 		if conversations[n].Response == nil {
-			c.Response = res
-			c.ResponseBody = body
-			c.ResponseSeen = seen
+			update(&c)
 			h.conversations[address][n] = c
 			break
 		}

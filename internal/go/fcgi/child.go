@@ -76,19 +76,24 @@ func (r *request) parseParams() {
 	}
 }
 
-type Child struct {
-	// FIXME: should I add the sync.Mutex back in to protect the map?
-	requests         map[uint16]*request // keyed by request ID
-	requestCallback  func(*http.Request)
-	responseCallback func(*http.Response, []byte)
-	wg               sync.WaitGroup
+type DataGatherer interface {
+	ErrorInfo(string)
+	RequestInfo(*http.Request)
+	ResponseInfo(*http.Response, []byte)
+	ReturnValue(int)
 }
 
-func NewChild(processRequest func(*http.Request), processResponse func(*http.Response, []byte)) *Child {
+type Child struct {
+	// FIXME: should I add the sync.Mutex back in to protect the map?
+	requests map[uint16]*request // keyed by request ID
+	dg       DataGatherer
+	wg       sync.WaitGroup
+}
+
+func NewChild(dg DataGatherer) *Child {
 	return &Child{
-		requests:         make(map[uint16]*request),
-		requestCallback:  processRequest,
-		responseCallback: processResponse,
+		requests: make(map[uint16]*request),
+		dg:       dg,
 	}
 }
 
@@ -169,10 +174,8 @@ func (c *Child) handleRecord(rec *record) error {
 		}
 		req.parseParams()
 		return nil
-	// FIXME: also add in the things for responses
 	case typeStderr:
-		//content := rec.content()
-		//fmt.Printf("Errors:\n%s", content)
+		c.dg.ErrorInfo(string(rec.content()))
 		return nil
 	case typeStdout:
 		if req, ok = c.requests[rec.h.Id]; !ok {
@@ -281,7 +284,7 @@ func (c *Child) serveResponse(req *request, body io.ReadCloser) {
 	defer res.Body.Close()
 	// FIXME: consider a savepoint reader to have another crack at the body?
 	respBody, _ := ioutil.ReadAll(res.Body)
-	c.responseCallback(res, respBody)
+	c.dg.ResponseInfo(res, respBody)
 }
 
 func (c *Child) serveRequest(req *request, body io.ReadCloser) {
@@ -294,7 +297,7 @@ func (c *Child) serveRequest(req *request, body io.ReadCloser) {
 	withoutUsedEnvVars := filterOutUsedEnvVars(req.params)
 	envVarCtx := context.WithValue(httpReq.Context(), envVarsContextKey{}, withoutUsedEnvVars)
 	httpReq = httpReq.WithContext(envVarCtx)
-	c.requestCallback(httpReq)
+	c.dg.RequestInfo(httpReq)
 }
 
 // filterOutUsedEnvVars returns a new map of env vars without the

@@ -1,9 +1,6 @@
 VERSION  := $(shell git describe --tags 2>/dev/null || git rev-parse --short HEAD)
 
-all: pcap2har fcgi
-
-fcgi: cmd/fcgi/main.go internal/go/fcgi/*.go
-	go build -o fcgi cmd/fcgi/main.go
+all: pcap2har
 
 pcap2har: cmd/pcap2har/main.go go.mod go.sum internal/reader/*.go \
 			internal/har/*.go internal/streamfactory/*.go internal/go/fcgi/*

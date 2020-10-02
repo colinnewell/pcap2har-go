@@ -9,14 +9,39 @@ import (
 	"github.com/colinnewell/pcap2har-go/internal/go/fcgi"
 )
 
+type FCGIInfoGatherer struct {
+	a, b gopacket.Flow
+	t    *TimeCaptureReader
+	h    *HTTPConversationReaders
+}
+
+func NewFCGIInfoGatherer(h *HTTPConversationReaders, t *TimeCaptureReader, a, b gopacket.Flow) *FCGIInfoGatherer {
+	return &FCGIInfoGatherer{
+		a: a,
+		b: b,
+		h: h,
+		t: t,
+	}
+}
+
+func (d *FCGIInfoGatherer) ErrorInfo(errString string) {
+	d.h.addErrorToResponse(d.a, d.b, errString, d.t.Seen())
+}
+
+func (d *FCGIInfoGatherer) RequestInfo(req *http.Request) {
+	defer req.Body.Close()
+	body, _ := ioutil.ReadAll(req.Body)
+	d.h.addRequest(d.a, d.b, req, body, d.t.Seen())
+}
+
+func (d *FCGIInfoGatherer) ResponseInfo(resp *http.Response, body []byte) {
+	d.h.addResponse(d.a, d.b, resp, body, d.t.Seen())
+}
+func (d *FCGIInfoGatherer) ReturnValue(int) {
+}
+
 func (h *HTTPConversationReaders) ReadFCGIRequest(spr *SavePointReader, t *TimeCaptureReader, a, b gopacket.Flow) error {
 	// try to product an HTTP request from the stream
-	c := fcgi.NewChild(func(req *http.Request) {
-		defer req.Body.Close()
-		body, _ := ioutil.ReadAll(req.Body)
-		h.addRequest(a, b, req, body, t.Seen())
-	}, func(resp *http.Response, body []byte) {
-		h.addResponse(a, b, resp, body, t.Seen())
-	})
+	c := fcgi.NewChild(NewFCGIInfoGatherer(h, t, a, b))
 	return c.ReadRequest(spr)
 }
