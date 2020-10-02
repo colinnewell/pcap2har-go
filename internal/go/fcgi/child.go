@@ -174,10 +174,8 @@ func (c *Child) handleRecord(rec *record) error {
 		}
 		req.parseParams()
 		return nil
-	// FIXME: also add in the things for responses
 	case typeStderr:
-		//content := rec.content()
-		//fmt.Printf("Errors:\n%s", content)
+		c.dg.ErrorInfo(string(rec.content()))
 		return nil
 	case typeStdout:
 		if req, ok = c.requests[rec.h.Id]; !ok {

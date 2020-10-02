@@ -93,6 +93,7 @@ type ResponseInfo struct {
 	HeadersSize  int         `json:"headersSize"`
 	BodySize     int         `json:"bodySize"`
 	TransferSize int         `json:"_transferSize"`
+	FCGIErrors   []string    `json:"_fcgiErrors,omitempty"`
 }
 
 type Entry struct {
@@ -152,6 +153,7 @@ func (h *Har) AddEntry(v reader.Conversation) {
 			HTTPVersion: v.Response.Proto,
 			StatusText:  v.Response.Status,
 			Status:      v.Response.StatusCode,
+			FCGIErrors:  v.Errors,
 		}
 	}
 	entry := Entry{
