@@ -1,8 +1,12 @@
 package har
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/colinnewell/pcap2har-go/internal/reader"
@@ -56,18 +60,26 @@ type RequestInfo struct {
 	Cookies     []Cookie    `json:"cookies"`
 	HeadersSize int         `json:"headersSize"`
 	BodySize    int         `json:"bodySize"`
-	Content     ContentInfo `json:"content"`
+	Content     ContentInfo `json:"postData,omitempty"`
 }
 
 type ContentInfo struct {
-	MimeType string `json:"mimeType"`
-	Size     int    `json:"size"`
-	Text     string `json:"text"`
+	MimeType string     `json:"mimeType"`
+	Size     int        `json:"size"`
+	Text     string     `json:"text"`
+	Params   []PostData `json:"params,omitempty"`
 }
 
 type KeyValues struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
+}
+
+type PostData struct {
+	Name        string `json:"name"`
+	Value       string `json:"value"`
+	FileName    string `json:"fileName,omitempty"`
+	ContentType string `json:"contentType,omitempty"`
 }
 
 type ResponseInfo struct {
@@ -109,62 +121,10 @@ type Har struct {
 
 // AddEntry extracts info from HTTP conversations and turns them into a Har Entry.
 func (h *Har) AddEntry(v reader.Conversation) {
-	var reqheaders []Header
 	if v.Request == nil {
 		return
 	}
-	for k, values := range v.Request.Header {
-		for _, v := range values {
-			reqheaders = append(reqheaders, Header{Name: k, Value: v})
-		}
-	}
-	if v.Request.Host != "" {
-		reqheaders = append(reqheaders, Header{
-			Name: "Host", Value: v.Request.Host,
-		})
-	}
-	cookies := v.Request.Cookies()
-	cookieInfo := make([]Cookie, len(cookies))
-	for i, c := range cookies {
-		cookieInfo[i] = Cookie{
-			Name:     c.Name,
-			Value:    c.Value,
-			Expires:  c.Expires,
-			HTTPOnly: c.HttpOnly,
-			Secure:   c.Secure,
-		}
-	}
-	var queryString []KeyValues
-	for k, values := range v.Request.URL.Query() {
-		for _, v := range values {
-			queryString = append(queryString, KeyValues{Name: k, Value: v})
-		}
-	}
-	var mimeType string
-	mimeTypes, ok := v.Request.Header["Content-Type"]
-	if ok {
-		mimeType = mimeTypes[0]
-	}
-	if v.Request.URL.Host == "" {
-		v.Request.URL.Host = v.Request.Host
-	}
-	if v.Request.TLS == nil {
-		v.Request.URL.Scheme = "http"
-	} else {
-		v.Request.URL.Scheme = "https"
-	}
-	req := RequestInfo{
-		Cookies:     cookieInfo,
-		Headers:     reqheaders,
-		Method:      v.Request.Method,
-		URL:         v.Request.URL.String(),
-		QueryString: queryString,
-		Content: ContentInfo{
-			Size:     len(v.RequestBody),
-			MimeType: mimeType,
-			Text:     string(v.RequestBody),
-		},
-	}
+	req := extractRequest(v)
 	startTime := v.RequestSeen[0]
 	var duration time.Duration
 	if len(v.ResponseSeen) > 0 {
@@ -174,27 +134,13 @@ func (h *Har) AddEntry(v reader.Conversation) {
 	}
 	resp := ResponseInfo{}
 	if v.Response != nil {
-		mimeTypes, ok = v.Response.Header["Content-Type"]
+		mimeTypes, ok := v.Response.Header["Content-Type"]
+		var mimeType string
 		if ok {
 			mimeType = mimeTypes[0]
 		}
-		var headers []Header
-		for k, values := range v.Response.Header {
-			for _, v := range values {
-				headers = append(headers, Header{Name: k, Value: v})
-			}
-		}
-		cookies := v.Response.Cookies()
-		cookieInfo := make([]Cookie, len(cookies))
-		for i, c := range cookies {
-			cookieInfo[i] = Cookie{
-				Name:     c.Name,
-				Value:    c.Value,
-				Expires:  c.Expires,
-				HTTPOnly: c.HttpOnly,
-				Secure:   c.Secure,
-			}
-		}
+		headers := extractHeaders(v.Response.Header)
+		cookieInfo := extractCookies(v.Response.Cookies())
 		resp = ResponseInfo{
 			Content: ContentInfo{
 				Size:     len(v.ResponseBody),
@@ -229,6 +175,125 @@ func (h *Har) FinaliseAndSort() {
 
 	for i, entry := range entries {
 		id := fmt.Sprintf("page_%d", i+1)
-		h.Log.Pages = append(h.Log.Pages, Page{ID: id, Title: entry.Request.URL, StartedDateTime: entry.StartedDateTime, PageTimings: PageTiming{-1, -1}})
+		h.Log.Pages = append(h.Log.Pages, Page{
+			ID:              id,
+			Title:           entry.Request.URL,
+			StartedDateTime: entry.StartedDateTime,
+			PageTimings:     PageTiming{-1, -1},
+		})
+	}
+}
+
+func extractCookies(cookies []*http.Cookie) []Cookie {
+	cookieInfo := make([]Cookie, len(cookies))
+	for i, c := range cookies {
+		cookieInfo[i] = Cookie{
+			Name:     c.Name,
+			Value:    c.Value,
+			Expires:  c.Expires,
+			HTTPOnly: c.HttpOnly,
+			Secure:   c.Secure,
+		}
+	}
+	return cookieInfo
+}
+
+func extractHeaders(header http.Header) []Header {
+	var headers []Header
+	for k, values := range header {
+		for _, v := range values {
+			headers = append(headers, Header{Name: k, Value: v})
+		}
+	}
+	return headers
+}
+
+func extractRequest(v reader.Conversation) RequestInfo {
+	reqheaders := extractHeaders(v.Request.Header)
+	if v.Request.Host != "" {
+		reqheaders = append(reqheaders, Header{
+			Name: "Host", Value: v.Request.Host,
+		})
+	}
+	cookieInfo := extractCookies(v.Request.Cookies())
+	var queryString []KeyValues
+	for k, values := range v.Request.URL.Query() {
+		for _, v := range values {
+			queryString = append(queryString, KeyValues{Name: k, Value: v})
+		}
+	}
+	var mimeType string
+	mimeTypes, ok := v.Request.Header["Content-Type"]
+	if ok {
+		mimeType = mimeTypes[0]
+	}
+	var params []PostData
+	processedMimeType := mimeType
+	if idx := strings.Index(processedMimeType, ";"); idx >= 0 {
+		processedMimeType = processedMimeType[0:idx]
+	}
+	switch processedMimeType {
+	case "application/x-www-form-urlencoded":
+		v.Request.Body = ioutil.NopCloser(bytes.NewBuffer(v.RequestBody))
+		v.Request.ParseForm()
+		for k, values := range v.Request.PostForm {
+			for _, v := range values {
+				params = append(params, PostData{Name: k, Value: v})
+			}
+		}
+	case "multipart/form-data":
+		// MultipartReader
+		v.Request.Body = ioutil.NopCloser(bytes.NewBuffer(v.RequestBody))
+		err := v.Request.ParseMultipartForm(int64(len(v.RequestBody)))
+		if err == nil {
+			for k, values := range v.Request.PostForm {
+				for _, v := range values {
+					params = append(params, PostData{Name: k, Value: v})
+				}
+			}
+			for k, files := range v.Request.MultipartForm.File {
+				for _, f := range files {
+					file, err := f.Open()
+					var content []byte
+					if err == nil {
+						content, err = ioutil.ReadAll(file)
+					}
+					v := string(content)
+					mimeTypes, ok := f.Header["Content-Type"]
+					var partType string
+					if ok {
+						partType = mimeTypes[0]
+					}
+
+					params = append(params, PostData{
+						Name:        k,
+						Value:       v,
+						FileName:    f.Filename,
+						ContentType: partType,
+					})
+				}
+			}
+		}
+	}
+	if v.Request.URL.Host == "" {
+		v.Request.URL.Host = v.Request.Host
+	}
+	if v.Request.TLS == nil {
+		v.Request.URL.Scheme = "http"
+	} else {
+		v.Request.URL.Scheme = "https"
+	}
+	return RequestInfo{
+		Cookies:     cookieInfo,
+		Headers:     reqheaders,
+		Method:      v.Request.Method,
+		URL:         v.Request.URL.String(),
+		QueryString: queryString,
+		Content: ContentInfo{
+			Size:     len(v.RequestBody),
+			MimeType: mimeType,
+			Text:     string(v.RequestBody),
+			Params:   params,
+		},
 	}
 }

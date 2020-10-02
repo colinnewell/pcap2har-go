@@ -33,7 +33,7 @@ func main() {
 	}
 
 	if displayVersion {
-		fmt.Printf("Version: %s\n", buildVersion)
+		fmt.Printf("Version: %s %s\n", Version, buildVersion)
 		return
 	}
 

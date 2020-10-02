@@ -1,4 +1,4 @@
-pcap2har
+./pcap2har
 corpus/
 crashers/
 suppressions/
