@@ -6,6 +6,7 @@ import (
 	"log"
 	"runtime/debug"
 
+	dbg "github.com/colinnewell/pcap2har-go/internal/debug"
 	"github.com/colinnewell/pcap2har-go/internal/har"
 	"github.com/colinnewell/pcap2har-go/internal/reader"
 	"github.com/colinnewell/pcap2har-go/internal/streamfactory"
@@ -19,8 +20,10 @@ import (
 
 func main() {
 	var displayVersion bool
+	var debugFile string
 
 	pflag.BoolVar(&displayVersion, "version", false, "Display program version")
+	pflag.StringVar(&debugFile, "debug-file", "", "Produce a debug file containing the raw streams")
 	pflag.Parse()
 
 	buildVersion := "unknown"
@@ -43,8 +46,16 @@ func main() {
 	}
 
 	r := reader.New()
+	var cr streamfactory.ConversationReader
+	cr = r
+	// FIXME: make use of debugFile
+	if debugFile != "" {
+		dbg := dbg.New(r, debugFile)
+		defer dbg.Close()
+		cr = dbg
+	}
 	streamFactory := &streamfactory.HTTPStreamFactory{
-		Reader: r,
+		Reader: cr,
 	}
 	streamPool := tcpassembly.NewStreamPool(streamFactory)
 	assembler := tcpassembly.NewAssembler(streamPool)
