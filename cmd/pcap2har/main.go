@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"os"
 	"runtime/debug"
 
 	jsoniter "github.com/json-iterator/go"
@@ -38,7 +37,7 @@ func main() {
 		return
 	}
 
-	files := os.Args[1:]
+	files := pflag.Args()
 
 	if len(files) == 0 {
 		log.Fatal("Must specify filename")
