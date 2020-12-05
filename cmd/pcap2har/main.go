@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 	"runtime/debug"
 
 	"github.com/colinnewell/pcap2har-go/internal/har"
@@ -37,7 +36,7 @@ func main() {
 		return
 	}
 
-	files := os.Args[1:]
+	files := pflag.Args()
 
 	if len(files) == 0 {
 		log.Fatal("Must specify filename")
