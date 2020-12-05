@@ -12,8 +12,9 @@ import (
 )
 
 func TestHTTPStreamRead(t *testing.T) {
+	r := reader.New()
 	streamFactory := &streamfactory.HTTPStreamFactory{
-		Reader: reader.New(),
+		Reader: r,
 	}
 	streamPool := tcpassembly.NewStreamPool(streamFactory)
 	assembler := tcpassembly.NewAssembler(streamPool)
@@ -32,7 +33,7 @@ func TestHTTPStreamRead(t *testing.T) {
 		}
 	}
 	assembler.FlushAll()
-	c := streamFactory.Reader.GetConversations()
+	c := r.GetConversations()
 	// this is a pretty crude test, just checking we have
 	// managed to do something, rather than the integrity.
 	if len(c) != 21 {

@@ -43,8 +43,9 @@ func main() {
 		log.Fatal("Must specify filename")
 	}
 
+	r := reader.New()
 	streamFactory := &streamfactory.HTTPStreamFactory{
-		Reader: reader.New(),
+		Reader: r,
 	}
 	streamPool := tcpassembly.NewStreamPool(streamFactory)
 	assembler := tcpassembly.NewAssembler(streamPool)
@@ -78,7 +79,7 @@ func main() {
 	har.Log.Creator.Name = "pcap2har"
 	har.Log.Creator.Version = buildVersion
 
-	c := streamFactory.Reader.GetConversations()
+	c := r.GetConversations()
 	for _, v := range c {
 		har.AddEntry(v)
 	}

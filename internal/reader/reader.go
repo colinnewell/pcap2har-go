@@ -34,9 +34,9 @@ type Conversation struct {
 	Errors []string
 }
 
-func New() HTTPConversationReaders {
+func New() *HTTPConversationReaders {
 	conversations := make(map[ConversationAddress][]Conversation)
-	return HTTPConversationReaders{
+	return &HTTPConversationReaders{
 		conversations: conversations,
 	}
 }
