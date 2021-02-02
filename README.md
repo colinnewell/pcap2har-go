@@ -12,6 +12,8 @@ a fairly common format.
 This requires the libpcap development library (and Go).
 
 	sudo apt install libpcap-dev
+	git clone https://github.com/colinnewell/pcap2har-go.git
+	cd pcap2har-go
 	make
 	sudo make install
 
