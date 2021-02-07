@@ -15,7 +15,7 @@ linters:
     - goconst
     - gocritic
       #- gocyclo
-      #- godot
+    - godot
       #- goerr113
     - gofmt
     - goimports

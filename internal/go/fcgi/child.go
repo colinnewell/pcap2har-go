@@ -37,7 +37,7 @@ type request struct {
 }
 
 // envVarsContextKey uniquely identifies a mapping of CGI
-// environment variables to their values in a request context
+// environment variables to their values in a request context.
 type envVarsContextKey struct{}
 
 var httpStatus = regexp.MustCompile(`(?m)^Status:\s*(.*)\s*$`)
@@ -303,7 +303,8 @@ func (c *Child) serveRequest(req *request, body io.ReadCloser) {
 }
 
 // filterOutUsedEnvVars returns a new map of env vars without the
-// variables in the given envVars map that are read for creating each http.Request
+// variables in the given envVars map that are read for creating each
+// http.Request.
 func filterOutUsedEnvVars(envVars map[string]string) map[string]string {
 	withoutUsedEnvVars := make(map[string]string)
 	for k, v := range envVars {

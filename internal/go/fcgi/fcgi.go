@@ -37,7 +37,8 @@ const (
 	typeGetValues    recType = 9
 )
 
-// keep the connection between web-server and responder open after request
+// keep the connection between web-server and responder open after
+// request.
 const flagKeepConn = 1
 
 const (
