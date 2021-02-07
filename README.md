@@ -141,20 +141,7 @@ and simple way to generate files with the data being processed.
 
 This program uses go modules so dependencies can be updated in the usual way.
 
-    go list -m all
-    github.com/colinnewell/pcap2har-go
-    github.com/google/go-cmp v0.4.1
-    github.com/google/gopacket v1.1.17
-    github.com/spf13/pflag v1.0.5
-    golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2
-    golang.org/x/net v0.0.0-20190404232315-eb5bcb51f2a3
-    golang.org/x/sys v0.0.0-20190405154228-4b34438f7a67
-    golang.org/x/text v0.3.0
-    golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543
-
-    go get github.com/google/go-cmp
-    go: github.com/google/go-cmp upgrade => v0.5.0
-    go: downloading github.com/google/go-cmp v0.5.0
+    go get -u ./...
     make test
 
     ...
