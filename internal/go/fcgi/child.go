@@ -17,6 +17,8 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+
+	//nolint:gosec
 	"net/http/cgi"
 	"regexp"
 	"strings"

@@ -3,47 +3,47 @@ linters:
   enable:
     - asciicheck
     - bodyclose
-    - deadcode
+      #- deadcode
     - depguard
     - dogsled
     - dupl
-    - errcheck
-    - funlen
-    - gochecknoglobals
+      #- errcheck
+      #- funlen
+      #- gochecknoglobals
     - gochecknoinits
-    - gocognit
+      #- gocognit
     - goconst
-    - gocritic
-    - gocyclo
-    - godot
-    - goerr113
+      #- gocritic
+      #- gocyclo
+      #- godot
+      #- goerr113
     - gofmt
     - goimports
-    - golint
-    - gomnd
+      #- golint
+      #- gomnd
     - goprintffuncname
     - gosec
     - gosimple
     - govet
-    - ineffassign
-    - interfacer
-    - lll
-    - maligned
+      #- ineffassign
+      #- interfacer
+      #- lll
+      #- maligned
     - misspell
     - nakedret
-    - nestif
+      #- nestif
     - nolintlint
     - rowserrcheck
     - scopelint
-    - staticcheck
-    - structcheck
-    - stylecheck
+      #- staticcheck
+      #- structcheck
+      #- stylecheck
     - testpackage
     - typecheck
     - unconvert
-    - unparam
-    - unused
-    - varcheck
+      #- unparam
+      #- unused
+      #- varcheck
     - whitespace
 
   # come back to this.  might be useful later.

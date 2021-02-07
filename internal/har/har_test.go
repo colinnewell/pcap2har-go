@@ -58,7 +58,7 @@ func TestHarRequestOnly(t *testing.T) {
 			ProtoMinor: 0,
 			Header:     http.Header{},
 		},
-		RequestSeen: []time.Time{time.Time{}},
+		RequestSeen: []time.Time{{}},
 	}
 	h.AddEntry(r)
 
@@ -192,7 +192,7 @@ func TestHarFullConversation(t *testing.T) {
 			Header:     http.Header{},
 		},
 		RequestBody: []byte("request body"),
-		RequestSeen: []time.Time{time.Time{}},
+		RequestSeen: []time.Time{{}},
 		Response: &http.Response{
 			Status:           "200 OK",
 			StatusCode:       200,
@@ -204,7 +204,7 @@ func TestHarFullConversation(t *testing.T) {
 			TransferEncoding: []string{"base64"},
 		},
 		ResponseBody: []byte("response body"),
-		ResponseSeen: []time.Time{time.Time{}},
+		ResponseSeen: []time.Time{{}},
 	}
 	h.AddEntry(r)
 
