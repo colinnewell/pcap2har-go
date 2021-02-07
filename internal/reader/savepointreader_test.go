@@ -15,7 +15,9 @@ func TestSavePointReader(t *testing.T) {
 	sp := reader.NewSavePointReader(r)
 	var buf [4]byte
 
-	sp.Read(buf[:])
+	if _, err := sp.Read(buf[:]); err != nil {
+		t.Fatal(err)
+	}
 
 	if !cmp.Equal(buf[:], []byte("test")) {
 		t.Errorf("Simple read failed")
@@ -23,7 +25,9 @@ func TestSavePointReader(t *testing.T) {
 
 	sp.SavePoint()
 
-	sp.Read(buf[:])
+	if _, err := sp.Read(buf[:]); err != nil {
+		t.Fatal(err)
+	}
 
 	if !cmp.Equal(buf[:], []byte(" thi")) {
 		t.Errorf("Next read failed")
@@ -31,7 +35,9 @@ func TestSavePointReader(t *testing.T) {
 
 	sp.Restore(false)
 
-	sp.Read(buf[:])
+	if _, err := sp.Read(buf[:]); err != nil {
+		t.Fatal(err)
+	}
 
 	if !cmp.Equal(buf[:], []byte(" thi")) {
 		t.Errorf("Repeated read failed")
@@ -39,7 +45,9 @@ func TestSavePointReader(t *testing.T) {
 
 	sp.Reset()
 
-	sp.Read(buf[:])
+	if _, err := sp.Read(buf[:]); err != nil {
+		t.Fatal(err)
+	}
 
 	if !cmp.Equal(buf[:], []byte("s th")) {
 		t.Errorf("Next read failed")
@@ -47,14 +55,18 @@ func TestSavePointReader(t *testing.T) {
 
 	sp.SavePoint()
 
-	sp.Read(buf[:])
+	if _, err := sp.Read(buf[:]); err != nil {
+		t.Fatal(err)
+	}
 
 	if !cmp.Equal(buf[:], []byte("ing ")) {
 		t.Errorf("Next read failed")
 	}
 
 	sp.Reset()
-	sp.Read(buf[:])
+	if _, err := sp.Read(buf[:]); err != nil {
+		t.Fatal(err)
+	}
 
 	if !cmp.Equal(buf[:], []byte("can ")) {
 		t.Errorf("Next read failed")
@@ -71,7 +83,9 @@ func TestSavePointReader(t *testing.T) {
 	}
 
 	sp.Restore(false)
-	sp.Read(buf[:])
+	if _, err := sp.Read(buf[:]); err != nil {
+		t.Fatal(err)
+	}
 
 	if !cmp.Equal(buf[:], []byte("do l")) {
 		t.Errorf("Next read failed")

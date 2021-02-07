@@ -3,11 +3,11 @@ linters:
   enable:
     - asciicheck
     - bodyclose
-      #- deadcode
+    - deadcode
     - depguard
     - dogsled
     - dupl
-      #- errcheck
+    - errcheck
       #- funlen
       #- gochecknoglobals
     - gochecknoinits

@@ -237,10 +237,11 @@ func extractRequest(v reader.Conversation) RequestInfo {
 	switch processedMimeType {
 	case "application/x-www-form-urlencoded":
 		v.Request.Body = ioutil.NopCloser(bytes.NewBuffer(v.RequestBody))
-		v.Request.ParseForm()
-		for k, values := range v.Request.PostForm {
-			for _, v := range values {
-				params = append(params, PostData{Name: k, Value: v})
+		if err := v.Request.ParseForm(); err == nil {
+			for k, values := range v.Request.PostForm {
+				for _, v := range values {
+					params = append(params, PostData{Name: k, Value: v})
+				}
 			}
 		}
 	case "multipart/form-data":

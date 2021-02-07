@@ -26,17 +26,15 @@ import (
 type recType uint8
 
 const (
-	typeBeginRequest    recType = 1
-	typeAbortRequest    recType = 2
-	typeEndRequest      recType = 3
-	typeParams          recType = 4
-	typeStdin           recType = 5
-	typeStdout          recType = 6
-	typeStderr          recType = 7
-	typeData            recType = 8
-	typeGetValues       recType = 9
-	typeGetValuesResult recType = 10
-	typeUnknownType     recType = 11
+	typeBeginRequest recType = 1
+	typeAbortRequest recType = 2
+	typeEndRequest   recType = 3
+	typeParams       recType = 4
+	typeStdin        recType = 5
+	typeStdout       recType = 6
+	typeStderr       recType = 7
+	typeData         recType = 8
+	typeGetValues    recType = 9
 )
 
 // keep the connection between web-server and responder open after request
@@ -49,8 +47,6 @@ const (
 
 const (
 	roleResponder = iota + 1 // only Responders are implemented.
-	roleAuthorizer
-	roleFilter
 )
 
 type header struct {
