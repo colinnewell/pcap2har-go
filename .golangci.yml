@@ -26,7 +26,7 @@ linters:
     - gosimple
     - govet
     - ineffassign
-      #- interfacer
+    - interfacer
       #- lll
     - maligned
     - misspell
@@ -35,8 +35,8 @@ linters:
     - nolintlint
     - rowserrcheck
     - scopelint
-      #- staticcheck
-      #- structcheck
+    - staticcheck
+    - structcheck
       #- stylecheck
     - testpackage
     - typecheck

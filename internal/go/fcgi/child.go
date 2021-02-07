@@ -275,7 +275,7 @@ func (c *Child) handleRecord(rec *record) error {
 	}
 }
 
-func (c *Child) serveResponse(body io.ReadCloser) {
+func (c *Child) serveResponse(body io.Reader) {
 	// FIXME: it would be nice to pass more meta data through the request too
 	defer c.wg.Done()
 	buf := bufio.NewReader(body)
