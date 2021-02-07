@@ -14,7 +14,10 @@ a development version of the library like this on Debian and Ubuntu variants:
 
 	sudo apt install libpcap-dev
 
-On Mac's/BSD I gather the library bindings required are there out of the box
+On Windows download and install npcap from https://nmap.org/npcap/.  The
+regular installer is sufficient, you shouldn't need the SDK.
+
+On Mac's/BSD the library bindings required should be there out of the box
 (no further action required).
 
 Note that it's assumed you have Go installed, and also make (without make look
