@@ -33,14 +33,14 @@ import (
 //  	return &s.r
 //  }
 type TCPReaderStream struct {
-	ReaderStreamOptions
 	reassembled  chan []tcpassembly.Reassembly
-	done         chan bool
 	current      []tcpassembly.Reassembly
+	done         chan bool
 	closed       bool
 	lossReported bool
 	first        bool
 	initiated    bool
+	ReaderStreamOptions
 }
 
 // ReaderStreamOptions provides user-resettable options for a TCPReaderStream.
