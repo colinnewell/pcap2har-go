@@ -195,7 +195,7 @@ func (c *Child) handleRecord(rec *record) error {
 				body = emptyBody
 			}
 			c.wg.Add(1)
-			go c.serveResponse(req, body)
+			go c.serveResponse(body)
 		}
 		if len(content) > 0 {
 			if !ok {
@@ -275,7 +275,7 @@ func (c *Child) handleRecord(rec *record) error {
 	}
 }
 
-func (c *Child) serveResponse(req *request, body io.ReadCloser) {
+func (c *Child) serveResponse(body io.ReadCloser) {
 	// FIXME: it would be nice to pass more meta data through the request too
 	defer c.wg.Done()
 	buf := bufio.NewReader(body)

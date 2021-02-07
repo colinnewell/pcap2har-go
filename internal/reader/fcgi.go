@@ -25,7 +25,7 @@ func NewFCGIInfoGatherer(h *HTTPConversationReaders, t *TimeCaptureReader, a, b 
 }
 
 func (d *FCGIInfoGatherer) ErrorInfo(errString string) {
-	d.h.addErrorToResponse(d.a, d.b, errString, d.t.Seen())
+	d.h.addErrorToResponse(d.a, d.b, errString)
 }
 
 func (d *FCGIInfoGatherer) RequestInfo(req *http.Request) {

@@ -183,7 +183,7 @@ func (h *HTTPConversationReaders) addRequest(a, b gopacket.Flow, req *http.Reque
 	})
 }
 
-func (h *HTTPConversationReaders) addErrorToResponse(a, b gopacket.Flow, errString string, seen []time.Time) {
+func (h *HTTPConversationReaders) addErrorToResponse(a, b gopacket.Flow, errString string) {
 	h.updateResponse(a, b, func(c *Conversation) {
 		c.Errors = append(c.Errors, errString)
 	})
