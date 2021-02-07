@@ -342,8 +342,7 @@ func addFastCGIEnvToContext(s string) bool {
 	// This list is redundant with the default "return true" below.
 	// Consider this documentation of the sorts of things we expect
 	// to maybe see.
-	switch s {
-	case "REMOTE_USER":
+	if s == "REMOTE_USER" {
 		return true
 	}
 	// Unknown, so include it to be safe.

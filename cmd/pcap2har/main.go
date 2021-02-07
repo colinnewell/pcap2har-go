@@ -87,7 +87,8 @@ func main() {
 
 	bytes, err := json.Marshal(har)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		return
 	}
 	fmt.Println(string(bytes))
 }
