@@ -5,16 +5,20 @@ jobs:
     strategy:
       matrix:
         go-version: [1.13.x, 1.14.x, 1.15.x]
-        platform: [ubuntu-latest]
+        platform: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.platform }}
     steps:
     - name: Install Go
       uses: actions/setup-go@v1
       with:
         go-version: ${{ matrix.go-version }}
+
     - name: Checkout code
       uses: actions/checkout@v2
+
     - name: Install libpcap
+      if: ${{ matrix.platform == 'ubuntu-latest' }}
       run: sudo apt-get install libpcap-dev
+
     - name: Test
       run: make test
