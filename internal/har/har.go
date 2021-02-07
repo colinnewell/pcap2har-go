@@ -259,7 +259,7 @@ func extractRequest(v reader.Conversation) RequestInfo {
 					file, err := f.Open()
 					var content []byte
 					if err == nil {
-						content, err = ioutil.ReadAll(file)
+						content, _ = ioutil.ReadAll(file)
 					}
 					v := string(content)
 					mimeTypes, ok := f.Header["Content-Type"]
