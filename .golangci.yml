@@ -42,8 +42,8 @@ linters:
     - typecheck
     - unconvert
       #- unparam
-      #- unused
-      #- varcheck
+    - unused
+    - varcheck
     - whitespace
 
   # come back to this.  might be useful later.

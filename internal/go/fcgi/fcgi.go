@@ -59,9 +59,8 @@ type header struct {
 }
 
 type beginRequest struct {
-	role     uint16
-	flags    uint8
-	reserved [5]uint8
+	role  uint16
+	flags uint8
 }
 
 func (br *beginRequest) read(content []byte) error {
@@ -71,14 +70,6 @@ func (br *beginRequest) read(content []byte) error {
 	br.role = binary.BigEndian.Uint16(content)
 	br.flags = content[2]
 	return nil
-}
-
-func (h *header) init(recType recType, reqId uint16, contentLength int) {
-	h.Version = 1
-	h.Type = recType
-	h.Id = reqId
-	h.ContentLength = uint16(contentLength)
-	h.PaddingLength = uint8(-contentLength & 7)
 }
 
 type record struct {
