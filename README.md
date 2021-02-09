@@ -9,9 +9,21 @@ a fairly common format.
 
 ## Building
 
-This requires the libpcap development library (and Go).
+This program requires libpcap to build and run.  On Linux you typically install
+a development version of the library like this on Debian and Ubuntu variants:
 
 	sudo apt install libpcap-dev
+
+On Windows download and install npcap from https://nmap.org/npcap/.  The
+regular installer is sufficient, you shouldn't need the SDK.
+
+On Mac's/BSD the library bindings required should be there out of the box
+(no further action required).
+
+Note that it's assumed you have Go installed, and also make (without make look
+at the commands in the Makefile, that is mostly being used for convenience
+rather than because things are particularly complex).
+
 	git clone https://github.com/colinnewell/pcap2har-go.git
 	cd pcap2har-go
 	make
