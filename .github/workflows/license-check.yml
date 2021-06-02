@@ -1,0 +1,21 @@
+on: [push, pull_request]
+name: License check
+jobs:
+  license_check:
+    runs-on: ubuntu-latest
+    name: Check for unapproved licenses
+    steps:
+    - name: Checkout the code
+      uses: actions/checkout@master
+
+    - name: Set up Ruby 2.6
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 2.6
+
+    - name: Install license check
+      run: gem install license_finder
+
+    - name: Perform checks
+      id: license-check
+      run: license_finder
