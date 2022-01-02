@@ -17,5 +17,5 @@ jobs:
       uses: actions/checkout@v2
 
     - name: Check gofmt
-      run: gofmt -s -l .
+      run: ./ensure-gofmt.sh
 

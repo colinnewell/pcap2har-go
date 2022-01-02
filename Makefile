@@ -28,7 +28,7 @@ install:
 
 lint:
 	golangci-lint run
-	gofmt -l -s .
+	./ensure-gofmt.sh
 
 fuzz:
 	go get github.com/dvyukov/go-fuzz/go-fuzz \
