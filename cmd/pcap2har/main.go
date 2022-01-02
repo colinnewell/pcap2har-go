@@ -85,10 +85,11 @@ func main() {
 	}
 	har.FinaliseAndSort()
 
-	bytes, err := json.Marshal(har)
+	e := json.NewEncoder(os.Stdout)
+	e.SetIndent("", "  ")
+	err := e.Encode(har)
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	fmt.Println(string(bytes))
 }
