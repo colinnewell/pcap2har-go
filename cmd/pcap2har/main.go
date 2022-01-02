@@ -1,11 +1,12 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 	"runtime/debug"
+
+	jsoniter "github.com/json-iterator/go"
 
 	"github.com/colinnewell/pcap2har-go/internal/har"
 	"github.com/colinnewell/pcap2har-go/internal/reader"
@@ -85,6 +86,7 @@ func main() {
 	}
 	har.FinaliseAndSort()
 
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	e := json.NewEncoder(os.Stdout)
 	e.SetIndent("", "  ")
 	err := e.Encode(har)
