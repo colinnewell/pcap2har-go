@@ -3,7 +3,7 @@ module github.com/colinnewell/pcap2har-go
 go 1.14
 
 require (
-	github.com/colinnewell/pcap-cli v0.0.0-00010101000000-000000000000
+	github.com/colinnewell/pcap-cli v0.0.2
 	github.com/google/go-cmp v0.5.6
 	github.com/google/gopacket v1.1.19
 	github.com/json-iterator/go v1.1.12
@@ -12,4 +12,4 @@ require (
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 )
 
-replace github.com/colinnewell/pcap-cli => ../pcap-cli
+//replace github.com/colinnewell/pcap-cli => ../pcap-cli

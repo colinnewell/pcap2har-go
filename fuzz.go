@@ -8,8 +8,8 @@ import (
 	"log"
 	"os"
 
+	"github.com/colinnewell/pcap-cli/tcp"
 	"github.com/colinnewell/pcap2har-go/internal/reader"
-	"github.com/colinnewell/pcap2har-go/internal/streamfactory"
 
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
@@ -19,7 +19,7 @@ import (
 
 func Fuzz(data []byte) int {
 
-	streamFactory := &streamfactory.HTTPStreamFactory{
+	streamFactory := &tcp.StreamFactory{
 		Reader: reader.New(),
 	}
 	streamPool := tcpassembly.NewStreamPool(streamFactory)
