@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/colinnewell/pcap-cli/tcp"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/tcpassembly/tcpreader"
 )
@@ -41,30 +42,17 @@ func New() *HTTPConversationReaders {
 	}
 }
 
-func (h *HTTPConversationReaders) GetConversations() []Conversation {
-	var conversations []Conversation
-	for _, c := range h.conversations {
-		conversations = append(conversations, c...)
-	}
-	return conversations
-}
+type streamDecoder func(*tcp.SavePointReader, *tcp.TimeCaptureReader, gopacket.Flow, gopacket.Flow) error
 
-type ReaderStream interface {
-	Read(p []byte) (n int, err error)
-	Seen() (time.Time, error)
-}
-
-type streamDecoder func(*SavePointReader, *TimeCaptureReader, gopacket.Flow, gopacket.Flow) error
-
-func drain(spr *SavePointReader, _ *TimeCaptureReader, _, _ gopacket.Flow) error {
+func drain(spr *tcp.SavePointReader, _ *tcp.TimeCaptureReader, _, _ gopacket.Flow) error {
 	tcpreader.DiscardBytesToEOF(spr)
 	return nil
 }
 
 // ReadStream tries to read tcp connections and extract HTTP conversations.
-func (h *HTTPConversationReaders) ReadStream(r ReaderStream, a, b gopacket.Flow) {
-	t := NewTimeCaptureReader(r)
-	spr := NewSavePointReader(t)
+func (h *HTTPConversationReaders) ReadStream(r tcp.Stream, a, b gopacket.Flow, completed chan interface{}) {
+	t := tcp.NewTimeCaptureReader(r)
+	spr := tcp.NewSavePointReader(t)
 	decoders := []streamDecoder{
 		h.ReadHTTPRequest,
 		h.ReadHTTPResponse,
@@ -92,7 +80,7 @@ func (h *HTTPConversationReaders) ReadStream(r ReaderStream, a, b gopacket.Flow)
 }
 
 // ReadHTTPResponse try to read the stream as an HTTP response.
-func (h *HTTPConversationReaders) ReadHTTPResponse(spr *SavePointReader, t *TimeCaptureReader, a, b gopacket.Flow) error {
+func (h *HTTPConversationReaders) ReadHTTPResponse(spr *tcp.SavePointReader, t *tcp.TimeCaptureReader, a, b gopacket.Flow) error {
 	buf := bufio.NewReader(spr)
 
 	res, err := http.ReadResponse(buf, nil)
@@ -134,7 +122,7 @@ func (h *HTTPConversationReaders) ReadHTTPResponse(spr *SavePointReader, t *Time
 }
 
 // ReadHTTPRequest try to read the stream as an HTTP request.
-func (h *HTTPConversationReaders) ReadHTTPRequest(spr *SavePointReader, t *TimeCaptureReader, a, b gopacket.Flow) error {
+func (h *HTTPConversationReaders) ReadHTTPRequest(spr *tcp.SavePointReader, t *tcp.TimeCaptureReader, a, b gopacket.Flow) error {
 	spr.SavePoint()
 	buf := bufio.NewReader(spr)
 

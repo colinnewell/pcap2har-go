@@ -6,16 +6,17 @@ import (
 
 	"github.com/google/gopacket"
 
+	"github.com/colinnewell/pcap-cli/tcp"
 	"github.com/colinnewell/pcap2har-go/internal/go/fcgi"
 )
 
 type FCGIInfoGatherer struct {
 	a, b gopacket.Flow
-	t    *TimeCaptureReader
+	t    *tcp.TimeCaptureReader
 	h    *HTTPConversationReaders
 }
 
-func NewFCGIInfoGatherer(h *HTTPConversationReaders, t *TimeCaptureReader, a, b gopacket.Flow) *FCGIInfoGatherer {
+func NewFCGIInfoGatherer(h *HTTPConversationReaders, t *tcp.TimeCaptureReader, a, b gopacket.Flow) *FCGIInfoGatherer {
 	return &FCGIInfoGatherer{
 		a: a,
 		b: b,
@@ -40,7 +41,7 @@ func (d *FCGIInfoGatherer) ResponseInfo(resp *http.Response, body []byte) {
 func (d *FCGIInfoGatherer) ReturnValue(int) {
 }
 
-func (h *HTTPConversationReaders) ReadFCGIRequest(spr *SavePointReader, t *TimeCaptureReader, a, b gopacket.Flow) error {
+func (h *HTTPConversationReaders) ReadFCGIRequest(spr *tcp.SavePointReader, t *tcp.TimeCaptureReader, a, b gopacket.Flow) error {
 	// try to product an HTTP request from the stream
 	c := fcgi.NewChild(NewFCGIInfoGatherer(h, t, a, b))
 	return c.ReadRequest(spr)
