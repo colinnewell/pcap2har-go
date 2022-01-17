@@ -1,8 +1,8 @@
 package main
 
 import (
+	"io"
 	"log"
-	"os"
 
 	jsoniter "github.com/json-iterator/go"
 
@@ -16,8 +16,8 @@ func main() {
 	cli.Main("", r, output(r))
 }
 
-func output(r *reader.HTTPConversationReaders) func(completed chan interface{}) {
-	return func(completed chan interface{}) {
+func output(r *reader.HTTPConversationReaders) func(io.Writer, chan interface{}) {
+	return func(w io.Writer, completed chan interface{}) {
 		var har har.Har
 		har.Log.Version = "1.2"
 		har.Log.Creator.Name = "pcap2har"
@@ -32,7 +32,7 @@ func output(r *reader.HTTPConversationReaders) func(completed chan interface{}) 
 		har.FinaliseAndSort()
 
 		var json = jsoniter.ConfigCompatibleWithStandardLibrary
-		e := json.NewEncoder(os.Stdout)
+		e := json.NewEncoder(w)
 		e.SetIndent("", "  ")
 		err := e.Encode(har)
 		if err != nil {
