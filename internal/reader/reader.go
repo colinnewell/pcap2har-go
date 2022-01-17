@@ -79,6 +79,14 @@ func (h *HTTPConversationReaders) ReadStream(r tcp.Stream, a, b gopacket.Flow, c
 	}
 }
 
+func (h *HTTPConversationReaders) GetConversations() []Conversation {
+	var conversations []Conversation
+	for _, c := range h.conversations {
+		conversations = append(conversations, c...)
+	}
+	return conversations
+}
+
 // ReadHTTPResponse try to read the stream as an HTTP response.
 func (h *HTTPConversationReaders) ReadHTTPResponse(spr *tcp.SavePointReader, t *tcp.TimeCaptureReader, a, b gopacket.Flow) error {
 	buf := bufio.NewReader(spr)

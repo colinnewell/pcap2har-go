@@ -13,26 +13,31 @@ import (
 
 func main() {
 	r := reader.New()
-	cli.Main("", r, output)
+	cli.Main("", r, output(r))
 }
 
-func output(completed chan interface{}) {
-	var har har.Har
-	har.Log.Version = "1.2"
-	har.Log.Creator.Name = "pcap2har"
-	har.Log.Creator.Version = cli.Version
+func output(r *reader.HTTPConversationReaders) func(completed chan interface{}) {
+	return func(completed chan interface{}) {
+		var har har.Har
+		har.Log.Version = "1.2"
+		har.Log.Creator.Name = "pcap2har"
+		har.Log.Creator.Version = cli.Version
 
-	for v := range completed {
-		har.AddEntry(v.(reader.Conversation))
-	}
-	har.FinaliseAndSort()
+		<-completed
 
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
-	e := json.NewEncoder(os.Stdout)
-	e.SetIndent("", "  ")
-	err := e.Encode(har)
-	if err != nil {
-		log.Println(err)
-		return
+		c := r.GetConversations()
+		for _, v := range c {
+			har.AddEntry(v)
+		}
+		har.FinaliseAndSort()
+
+		var json = jsoniter.ConfigCompatibleWithStandardLibrary
+		e := json.NewEncoder(os.Stdout)
+		e.SetIndent("", "  ")
+		err := e.Encode(har)
+		if err != nil {
+			log.Println(err)
+			return
+		}
 	}
 }
