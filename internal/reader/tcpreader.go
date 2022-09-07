@@ -18,20 +18,20 @@ import (
 // a common pattern to do this by starting a goroutine in the factory's New
 // method:
 //
-//  type myStreamHandler struct {
-//  	r TCPReaderStream
-//  }
-//  func (m *myStreamHandler) run() {
-//  	// Do something here that reads all of the TCPReaderStream, or your assembly
-//  	// will block.
-//  	fmt.Println(tcpreader.DiscardBytesToEOF(&m.r))
-//  }
-//  func (f *myStreamFactory) New(a, b gopacket.Flow) tcpassembly.Stream {
-//  	s := &myStreamHandler{}
-//  	go s.run()
-//  	// Return the TCPReaderStream as the stream that assembly should populate.
-//  	return &s.r
-//  }
+//	type myStreamHandler struct {
+//		r TCPReaderStream
+//	}
+//	func (m *myStreamHandler) run() {
+//		// Do something here that reads all of the TCPReaderStream, or your assembly
+//		// will block.
+//		fmt.Println(tcpreader.DiscardBytesToEOF(&m.r))
+//	}
+//	func (f *myStreamFactory) New(a, b gopacket.Flow) tcpassembly.Stream {
+//		s := &myStreamHandler{}
+//		go s.run()
+//		// Return the TCPReaderStream as the stream that assembly should populate.
+//		return &s.r
+//	}
 type TCPReaderStream struct {
 	reassembled  chan []tcpassembly.Reassembly
 	current      []tcpassembly.Reassembly
