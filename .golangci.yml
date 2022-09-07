@@ -3,7 +3,6 @@ linters:
   enable:
     - asciicheck
     - bodyclose
-    - deadcode
     - depguard
     - dogsled
     - dupl
@@ -26,24 +25,20 @@ linters:
     - gosimple
     - govet
     - ineffassign
-    - interfacer
       #- lll
-    - maligned
     - misspell
     - nakedret
       #- nestif
     - nolintlint
     - rowserrcheck
-    - scopelint
+    - exportloopref
     - staticcheck
-    - structcheck
       #- stylecheck
     - testpackage
     - typecheck
     - unconvert
     - unparam
     - unused
-    - varcheck
     - whitespace
 
   # come back to this.  might be useful later.
