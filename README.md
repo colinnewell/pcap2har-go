@@ -125,7 +125,6 @@ code a little like this:
 		"bufio"
 	+	"bytes"
 		"io"
-		"io/ioutil"
 		"log"
 	@@ -51,8 +52,16 @@ type ReaderStream interface {
 
@@ -138,7 +137,7 @@ code a little like this:
 	+	var debug bytes.Buffer
 	+	tee := io.TeeReader(t, &debug)
 	+	defer func() {
-	+		ioutil.WriteFile(b.String()+".test", debug.Bytes(), 0644)
+	+		io.WriteFile(b.String()+".test", debug.Bytes(), 0644)
 	+	}()
 	+
 	+	spr := NewSavePointReader(tee)

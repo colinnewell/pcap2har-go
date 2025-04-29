@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"compress/gzip"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"sync"
@@ -112,14 +111,14 @@ func (h *HTTPConversationReaders) ReadHTTPResponse(spr *tcp.SavePointReader, t *
 		reader = res.Body
 	}
 
-	body, err := ioutil.ReadAll(reader)
+	body, err := io.ReadAll(reader)
 	// unexpected EOF reading trailer seems to indicate truncated stream when
 	// dealing with chunked encdoing.  If we fall back to not reading it, we
 	// still have the same basic output, just with all the chunking arterfacts.
 	if err != nil && err.Error() != "http: unexpected EOF reading trailer" {
 		spr.Restore(true)
 		buf = bufio.NewReader(spr)
-		body, err = ioutil.ReadAll(buf)
+		body, err = io.ReadAll(buf)
 		if err != nil {
 			log.Println("Got an error trying to read it raw, let's just discard")
 			tcpreader.DiscardBytesToEOF(buf)
@@ -141,11 +140,11 @@ func (h *HTTPConversationReaders) ReadHTTPRequest(spr *tcp.SavePointReader, t *t
 
 	spr.SavePoint()
 	defer req.Body.Close()
-	body, err := ioutil.ReadAll(req.Body)
+	body, err := io.ReadAll(req.Body)
 	if err != nil {
 		spr.Restore(true)
 		buf = bufio.NewReader(spr)
-		body, err = ioutil.ReadAll(buf)
+		body, err = io.ReadAll(buf)
 		if err != nil {
 			log.Println("Got an error trying to read it raw, let's just discard")
 			tcpreader.DiscardBytesToEOF(buf)

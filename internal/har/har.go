@@ -3,7 +3,7 @@ package har
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"sort"
 	"strings"
@@ -236,7 +236,7 @@ func extractRequest(v reader.Conversation) RequestInfo {
 	}
 	switch processedMimeType {
 	case "application/x-www-form-urlencoded":
-		v.Request.Body = ioutil.NopCloser(bytes.NewBuffer(v.RequestBody))
+		v.Request.Body = io.NopCloser(bytes.NewBuffer(v.RequestBody))
 		if err := v.Request.ParseForm(); err == nil {
 			for k, values := range v.Request.PostForm {
 				for _, v := range values {
@@ -246,7 +246,7 @@ func extractRequest(v reader.Conversation) RequestInfo {
 		}
 	case "multipart/form-data":
 		// MultipartReader
-		v.Request.Body = ioutil.NopCloser(bytes.NewBuffer(v.RequestBody))
+		v.Request.Body = io.NopCloser(bytes.NewBuffer(v.RequestBody))
 		err := v.Request.ParseMultipartForm(int64(len(v.RequestBody)))
 		if err == nil {
 			for k, values := range v.Request.PostForm {
@@ -259,7 +259,7 @@ func extractRequest(v reader.Conversation) RequestInfo {
 					file, err := f.Open()
 					var content []byte
 					if err == nil {
-						content, _ = ioutil.ReadAll(file)
+						content, _ = io.ReadAll(file)
 					}
 					v := string(content)
 					mimeTypes, ok := f.Header["Content-Type"]

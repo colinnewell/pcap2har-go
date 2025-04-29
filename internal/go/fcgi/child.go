@@ -14,7 +14,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 
@@ -129,7 +128,7 @@ func (c *Child) cleanUp() {
 	}
 }
 
-var emptyBody = ioutil.NopCloser(strings.NewReader(""))
+var emptyBody = io.NopCloser(strings.NewReader(""))
 
 // ErrConnClosed is returned by Read when a handler attempts to read the body of
 // a request after the connection to the web server has been closed.
@@ -285,7 +284,7 @@ func (c *Child) serveResponse(body io.Reader) {
 	}
 	defer res.Body.Close()
 	// FIXME: consider a savepoint reader to have another crack at the body?
-	respBody, _ := ioutil.ReadAll(res.Body)
+	respBody, _ := io.ReadAll(res.Body)
 	c.dg.ResponseInfo(res, respBody)
 }
 

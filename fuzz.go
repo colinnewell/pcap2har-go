@@ -4,7 +4,6 @@
 package fuzz
 
 import (
-	"io/ioutil"
 	"log"
 	"os"
 
@@ -25,7 +24,7 @@ func Fuzz(data []byte) int {
 	streamPool := tcpassembly.NewStreamPool(streamFactory)
 	assembler := tcpassembly.NewAssembler(streamPool)
 
-	tmpfile, err := ioutil.TempFile("", "example")
+	tmpfile, err := os.CreateTemp("", "example")
 	if err != nil {
 		log.Fatal(err)
 	}

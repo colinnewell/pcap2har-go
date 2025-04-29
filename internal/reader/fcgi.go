@@ -1,7 +1,7 @@
 package reader
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/google/gopacket"
@@ -31,7 +31,7 @@ func (d *FCGIInfoGatherer) ErrorInfo(errString string) {
 
 func (d *FCGIInfoGatherer) RequestInfo(req *http.Request) {
 	defer req.Body.Close()
-	body, _ := ioutil.ReadAll(req.Body)
+	body, _ := io.ReadAll(req.Body)
 	d.h.addRequest(d.a, d.b, req, body, d.t.Seen())
 }
 
