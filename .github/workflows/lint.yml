@@ -12,4 +12,4 @@ jobs:
       - name: Install libpcap
         run: sudo apt-get install libpcap-dev
       - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v2
+        uses: golangci/golangci-lint-action@v7
