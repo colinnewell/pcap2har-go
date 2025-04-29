@@ -1,5 +1,6 @@
+version: "2"
 linters:
-  disable-all: true
+  default: none
   enable:
     - asciicheck
     - bodyclose
@@ -7,43 +8,42 @@ linters:
     - dogsled
     - dupl
     - errcheck
-      #- funlen
-      #- gochecknoglobals
     - gochecknoinits
-      #- gocognit
     - goconst
     - gocritic
-      #- gocyclo
     - godot
-      #- goerr113
-    - gofmt
-    - goimports
-      #- golint
-      #- gomnd
     - goprintffuncname
     - gosec
-    - gosimple
     - govet
     - ineffassign
-      #- lll
     - misspell
     - nakedret
-      #- nestif
     - nolintlint
     - rowserrcheck
-    - exportloopref
     - staticcheck
-      #- stylecheck
     - testpackage
-    - typecheck
     - unconvert
     - unparam
     - unused
     - whitespace
-
-  # come back to this.  might be useful later.
-  # - prealloc
-  # - wsl
-  #
-  # probably not worrying about this.
-  # - godox
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
