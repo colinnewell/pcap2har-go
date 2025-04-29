@@ -1,5 +1,5 @@
-github.com/colinnewell/pcap-cli v0.0.5 h1:dpZXITwiFR7w6M+Q1wjN+OLfD/jZew17gmoChHz75Fg=
-github.com/colinnewell/pcap-cli v0.0.5/go.mod h1:bd7dOKHT3078cBeQCxosjLMdYnyHFFcbU1jvz1QLiCE=
+github.com/colinnewell/pcap-cli v0.0.6 h1:zDWh55lIL5W2Srbl+NeTlTtbMjz368AK1WQq82nxB3Y=
+github.com/colinnewell/pcap-cli v0.0.6/go.mod h1:Rd2onksgJQ/0hDYDDEFV/ZxOkgCM+B4evzduTfEFmKQ=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
