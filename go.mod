@@ -5,9 +5,9 @@ go 1.24.0
 toolchain go1.24.1
 
 require (
-	github.com/colinnewell/pcap-cli v0.0.6
+	github.com/colinnewell/pcap-cli v0.0.7
 	github.com/google/go-cmp v0.5.6
-	github.com/google/gopacket v1.1.19
+	github.com/google/gopacket v1.1.20-0.20250319234736-b7d9dbd15ae4
 	github.com/json-iterator/go v1.1.12
 )
 
